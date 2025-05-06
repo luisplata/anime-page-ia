@@ -1,10 +1,14 @@
 
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { AnimeListing, NewEpisode } from '@/services/anime-api';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, Heart } from 'lucide-react';
+import { useFavorites } from '@/hooks/use-favorites';
+import type React from 'react';
 
 interface AnimeCardProps {
   anime: AnimeListing | NewEpisode;
@@ -12,7 +16,22 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ anime, type }: AnimeCardProps) {
+  const { addFavorite, removeFavorite, isFavorite, isLoading: favoritesLoading } = useFavorites();
+
   const isEpisode = (item: AnimeListing | NewEpisode): item is NewEpisode => type === 'episode';
+  
+  const animeIdForFav = isEpisode(anime) ? anime.animeId : anime.id;
+  const isCurrentlyFavorite = isFavorite(animeIdForFav);
+
+  const handleFavoriteToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault(); // Prevent link navigation if button is inside a link
+    e.stopPropagation();
+    if (isCurrentlyFavorite) {
+      removeFavorite(animeIdForFav);
+    } else {
+      addFavorite(animeIdForFav);
+    }
+  };
   
   const href = isEpisode(anime) ? `/ver/${anime.animeId}/${anime.episodeNumber}` : `/anime/${anime.id}`;
   
@@ -24,7 +43,6 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
   }
   
   const idForSeed = isEpisode(anime) ? anime.animeId : anime.id;
-  // Use actual thumbnail URL from API. Fallback to picsum only if thumbnailUrl is missing or a known placeholder.
   const thumbnailUrl = anime.thumbnailUrl && !anime.thumbnailUrl.includes('https://example.com/missing.jpg') 
     ? anime.thumbnailUrl 
     : `https://picsum.photos/seed/${idForSeed}/300/300`;
@@ -32,21 +50,30 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
   const imageAlt = isEpisode(anime) ? `Thumbnail for ${anime.animeTitle} Episode ${anime.episodeNumber}` : `Thumbnail for ${anime.title}`;
   const dataAiHint = isEpisode(anime) ? "anime episode" : "anime cover";
 
-
   return (
-    <Card className="w-full max-w-sm overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg">
+    <Card className="w-full max-w-sm overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg relative group/card">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 z-10 bg-background/70 hover:bg-background text-foreground rounded-full p-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity"
+        onClick={handleFavoriteToggle}
+        aria-label={isCurrentlyFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+        disabled={favoritesLoading}
+      >
+        <Heart className={`h-5 w-5 ${isCurrentlyFavorite ? 'text-red-500 fill-red-500' : 'text-muted-foreground'}`} />
+      </Button>
       <Link href={href} className="block group">
         <CardHeader className="p-0">
-          <div className="aspect-square relative"> {/* Ensures square aspect ratio */}
+          <div className="aspect-square relative">
             <Image
               src={thumbnailUrl}
               alt={imageAlt}
               fill
-              sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) 25vw, 20vw" // Adjusted for more breakpoints
+              sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) 25vw, 20vw"
               className="object-cover"
               data-ai-hint={dataAiHint}
-              priority={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5} // Prioritize loading images for first few new episodes
-              unoptimized={thumbnailUrl.startsWith('http://')} // Add unoptimized for HTTP images
+              priority={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5}
+              unoptimized={thumbnailUrl.startsWith('http://')}
             />
           </div>
         </CardHeader>
