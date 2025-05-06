@@ -9,12 +9,6 @@ import { Input } from '@/components/ui/input';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-// Removed incorrect GeistSans function call:
-// const geistSans = GeistSans({
-//   variable: '--font-geist-sans',
-// });
-// GeistSans itself provides the variable property.
-
 export const metadata: Metadata = {
   title: 'AniView',
   description: 'Stream your favorite anime online.',
@@ -52,15 +46,17 @@ export default function RootLayout({
                 </Link>
               </nav>
               <div className="flex items-center gap-2 md:ml-auto md:gap-2 lg:gap-4">
-                <form className="ml-auto flex-1 sm:flex-initial">
+                <form method="GET" action="/directorio" className="ml-auto flex-1 sm:flex-initial">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
+                      name="q"
                       placeholder="Buscar anime..."
                       className="pl-8 sm:w-[200px] md:w-[200px] lg:w-[250px] rounded-full h-9"
                     />
                   </div>
+                  <button type="submit" className="sr-only">Buscar</button>
                 </form>
                 <ThemeToggle />
               </div>

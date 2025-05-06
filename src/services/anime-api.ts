@@ -342,8 +342,8 @@ export async function searchAnime(query: string): Promise<AnimeListing[]> {
     return [];
   }
   try {
-    const results = await fetchFromApi<ApiAnimeListItem[]>(`/api/animes/search?q=${encodeURIComponent(query)}`);
-    return results.map((anime): AnimeListing => ({
+    const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>(`/api/animes/search?q=${encodeURIComponent(query)}`);
+    return response.data.map((anime): AnimeListing => ({
       id: anime.slug || `unknown-search-${anime.id}`,
       title: anime.title || `Anime Desconocido ${anime.id}`,
       thumbnailUrl: anime.image || `https://picsum.photos/seed/search-${anime.id}/300/300`,
