@@ -12,7 +12,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT;
 
 // --- Internal API Response Interfaces (matching Postman collection and new structure) ---
 
-interface ApiEpisodeSource {
+export interface EpisodeSource { // Exported for use in components
   name: string;
   url: string;
   quality?: string;
@@ -22,13 +22,13 @@ interface ApiEpisode { // Represents an episode object within AnimeDetail or as 
   id: number; // Numeric ID of the episode
   title?: string;
   number: number;
-  sources: ApiEpisodeSource[]; // Changed from 'source' to 'sources'
+  sources: EpisodeSource[]; 
   anime_id?: number; // Present in specific_episode response from API
 }
 
 interface ApiAnimeBase {
   id: number; // Numeric ID from API
-  title: string; // Changed from name: string[] to title: string
+  title: string; 
   slug: string;
   description: string;
   image: string;
@@ -39,7 +39,7 @@ interface ApiAnimeListItem extends ApiAnimeBase {
 }
 
 interface ApiAnimeDetailResponse extends ApiAnimeBase {
-  episodes: ApiEpisode[]; // Changed from 'caps' to 'episodes'
+  episodes: ApiEpisode[]; 
 }
 
 interface ApiPagedResponse<T> {
@@ -64,11 +64,11 @@ interface ApiEpisodeListItem { // For the /api/episodes endpoint (list of latest
   number: number; // Episode number
   anime: { // Nested anime object
     id: number; // Numeric anime ID
-    title: string; // Changed from name: string[] to title: string
+    title: string; 
     slug: string;
     image: string;
   };
-  sources: ApiEpisodeSource[]; // Changed from 'source' to 'sources'
+  sources: EpisodeSource[]; 
 }
 
 
@@ -127,9 +127,9 @@ export interface Episode {
    */
   episodeNumber: number;
   /**
-   * The URL where the episode can be streamed (first available source).
+   * The available streaming sources for the episode.
    */
-  streamingUrl: string;
+  streamingSources: EpisodeSource[];
   /**
    * The title of the episode. Can be undefined.
    */
@@ -157,9 +157,9 @@ export interface NewEpisode {
    */
   thumbnailUrl: string;
   /**
-   * The URL where the episode can be streamed (first available source).
+   * The available streaming sources for the episode.
    */
-  streamingUrl: string;
+  streamingSources: EpisodeSource[];
 }
 
 // --- Helper Functions ---
@@ -230,16 +230,16 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
       animeTitle: ep.anime?.title || `Episodio ${ep.number} (Título Desconocido)`,
       episodeNumber: ep.number,
       thumbnailUrl: ep.anime?.image || `https://picsum.photos/seed/ep-${ep.anime?.id || ep.id}/300/300`,
-      streamingUrl: ep.sources?.length > 0 ? ep.sources[0].url : 'https://example.com/placeholder-stream',
+      streamingSources: ep.sources?.map(s => ({ name: s.name, url: s.url, quality: s.quality })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
     }));
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
-    return Array.from({ length: 5 }, (_, i) => ({
+    return Array.from({ length: 20 }, (_, i) => ({ // Increased length to 20 for 5 rows of 4
       animeId: `error-ep-${i + 1}`,
       animeTitle: `Error Anime ${i + 1}`,
       episodeNumber: 1,
       thumbnailUrl: `https://picsum.photos/seed/error-ep-${i+1}/300/300`,
-      streamingUrl: 'https://example.com/error-stream',
+      streamingSources: [{ name: "ErrorSource", url: 'https://example.com/error-stream', quality: 'Unknown' }],
     }));
   }
 }
@@ -259,7 +259,7 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
-    return Array.from({ length: 5 }, (_, i) => ({
+    return Array.from({ length: 20 }, (_, i) => ({ // Placeholder for 5 rows of 4
       id: `error-dir-${i + 1}`,
       title: `Error Anime Series ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-dir-${i+1}/300/300`,
@@ -284,7 +284,11 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
       coverUrl: anime.image || `https://picsum.photos/seed/${animeId}/400/600`,
       episodes: (anime.episodes || []).map((ep): Episode => ({
         episodeNumber: ep.number,
-        streamingUrl: ep.sources?.length > 0 ? ep.sources[0].url : 'https://example.com/placeholder-stream',
+        streamingSources: ep.sources?.map(source => ({ // Ensure this maps all sources
+          name: source.name,
+          url: source.url,
+          quality: source.quality
+        })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
         title: ep.title || `Episodio ${ep.number}`,
       })).sort((a, b) => a.episodeNumber - b.episodeNumber),
     };
@@ -319,7 +323,7 @@ export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch latest added anime:", error);
-    return Array.from({ length: 5 }, (_, i) => ({
+    return Array.from({ length: 20 }, (_, i) => ({ // Increased length to 20
       id: `error-new-${i + 1}`,
       title: `Error Anime Nuevo ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-new-${i+1}/300/300`,
@@ -363,14 +367,13 @@ export async function searchAnime(query: string): Promise<AnimeListing[]> {
 export async function getEpisodeDetails(animeSlug: string, episodeNumber: number): Promise<Episode | null> {
   const episodeIdPath = `${animeSlug}-${episodeNumber}`;
   try {
-    // Assuming the response for a specific episode is similar to the ApiEpisode structure.
     const episodeData = await fetchFromApi<ApiEpisode>(`/api/episodes/${episodeIdPath}`);
 
     if (!episodeData) return null;
 
     return {
       episodeNumber: episodeData.number,
-      streamingUrl: episodeData.sources?.length > 0 ? episodeData.sources[0].url : 'https://example.com/placeholder-stream',
+      streamingSources: episodeData.sources?.map(s => ({ name: s.name, url: s.url, quality: s.quality })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
       title: episodeData.title || `Episodio ${episodeData.number}`,
     };
   } catch (error) {

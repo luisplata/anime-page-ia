@@ -1,11 +1,11 @@
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ListCollapse, AlertTriangle, PlayCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListCollapse, AlertTriangle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import EpisodePlayerClient from './episode-player-client'; // Import the new client component
 
 
 interface EpisodePlayerPageProps {
@@ -80,25 +80,11 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <Card className="overflow-hidden shadow-xl rounded-lg">
-            <AspectRatio ratio={16 / 9} className="bg-black">
-              {currentEpisode.streamingUrl && currentEpisode.streamingUrl !== 'https://example.com/placeholder-stream' ? (
-                <iframe
-                  src={currentEpisode.streamingUrl}
-                  title={`Reproductor de ${fullEpisodeTitle}`}
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full border-0"
-                ></iframe>
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-primary-foreground">
-                  <PlayCircle className="h-16 w-16 mb-4 text-muted-foreground" />
-                  <p className="text-xl">Video no disponible</p>
-                  <p className="text-sm text-muted-foreground mt-1">No se encontró una fuente de video para este episodio.</p>
-                </div>
-              )}
-            </AspectRatio>
-          </Card>
+          <EpisodePlayerClient 
+            episode={currentEpisode} 
+            animeTitle={anime.title} 
+            fullEpisodeTitle={fullEpisodeTitle} 
+          />
           
           <div className="mt-6 flex justify-between items-center">
             <Button asChild variant="outline" disabled={!prevEpisode}>
@@ -136,7 +122,6 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
                                           Ep. {ep.episodeNumber}{ep.title && ep.title.toLowerCase() !== `episode ${ep.episodeNumber}`  && ep.title.toLowerCase() !== `episodio ${ep.episodeNumber}` ? `: ${ep.title}` : ''}
                                       </Link>
                                   </Button>
-                                  {/* Consider removing separator if list is long or use it only for non-last item */}
                                   {ep.episodeNumber !== anime.episodes[anime.episodes.length - 1].episodeNumber && <Separator className="mt-2"/> }
                               </li>
                           ))}
