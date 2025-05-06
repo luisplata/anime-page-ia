@@ -227,11 +227,11 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
   try {
     const response = await fetchFromApi<ApiPagedResponse<ApiEpisodeListItem>>('/api/episodes?page=1&per_page=20'); // Fetch first 20
     return response.data.map((ep): NewEpisode => ({
-      animeId: ep.anime.slug,
-      animeTitle: ep.anime.name.join(' '),
+      animeId: ep.anime?.slug || `unknown-anime-${ep.id}`,
+      animeTitle: Array.isArray(ep.anime?.name) ? ep.anime.name.join(' ') : (ep.anime?.name || `Anime ${ep.id}`),
       episodeNumber: ep.number,
-      thumbnailUrl: ep.anime.image,
-      streamingUrl: ep.source.length > 0 ? ep.source[0].url : 'https://example.com/placeholder-stream', // Fallback
+      thumbnailUrl: ep.anime?.image || `https://picsum.photos/seed/ep-${ep.id}/300/300`,
+      streamingUrl: ep.source?.length > 0 ? ep.source[0].url : 'https://example.com/placeholder-stream', // Fallback
     }));
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
@@ -255,9 +255,9 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
    try {
     const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=25'); // Fetch first 25
     return response.data.map((anime): AnimeListing => ({
-      id: anime.slug,
-      title: anime.name.join(' '),
-      thumbnailUrl: anime.image,
+      id: anime.slug || `unknown-anime-${anime.id}`,
+      title: Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`),
+      thumbnailUrl: anime.image || `https://picsum.photos/seed/anime-${anime.id}/300/300`,
     }));
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
@@ -278,14 +278,15 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
 export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
   try {
     const anime = await fetchFromApi<ApiAnimeDetailResponse>(`/api/anime/${animeId}`);
+    const title = Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`);
     return {
-      id: anime.slug,
-      title: anime.name.join(' '),
-      description: anime.description.startsWith('/') ? `Description for ${anime.name.join(' ')} (placeholder from API)` : anime.description, // Handle relative description
-      coverUrl: anime.image,
-      episodes: anime.caps.map((cap): Episode => ({
+      id: anime.slug || animeId,
+      title: title,
+      description: anime.description?.startsWith('/') ? `Description for ${title} (placeholder from API)` : (anime.description || "No description available."),
+      coverUrl: anime.image || `https://picsum.photos/seed/${animeId}/400/600`,
+      episodes: (anime.caps || []).map((cap): Episode => ({
         episodeNumber: cap.number,
-        streamingUrl: cap.source.length > 0 ? cap.source[0].url : 'https://example.com/placeholder-stream', // Fallback
+        streamingUrl: cap.source?.length > 0 ? cap.source[0].url : 'https://example.com/placeholder-stream', // Fallback
         title: cap.title || `Episodio ${cap.number}`,
       })).sort((a, b) => a.episodeNumber - b.episodeNumber), // Ensure episodes are sorted
     };
@@ -316,9 +317,9 @@ export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
     // Assuming the default order of /api/animes returns latest added first, or use a specific query param if API supports it.
     const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=20'); // Fetch first 20
     return response.data.map((anime): AnimeListing => ({
-      id: anime.slug,
-      title: anime.name.join(' '),
-      thumbnailUrl: anime.image,
+      id: anime.slug || `unknown-anime-${anime.id}`,
+      title: Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`),
+      thumbnailUrl: anime.image || `https://picsum.photos/seed/new-anime-${anime.id}/300/300`,
     }));
   } catch (error) {
     console.error("Failed to fetch latest added anime:", error);
@@ -344,9 +345,9 @@ export async function searchAnime(query: string): Promise<AnimeListing[]> {
     // The API seems to return a direct array for search, not a paginated response.
     const results = await fetchFromApi<ApiAnimeListItem[]>(`/api/animes/search?q=${encodeURIComponent(query)}`);
     return results.map((anime): AnimeListing => ({
-      id: anime.slug,
-      title: anime.name.join(' '),
-      thumbnailUrl: anime.image,
+      id: anime.slug || `unknown-search-${anime.id}`,
+      title: Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`),
+      thumbnailUrl: anime.image || `https://picsum.photos/seed/search-${anime.id}/300/300`,
     }));
   } catch (error) {
     console.error(`Failed to search for anime with query "${query}":`, error);
@@ -379,7 +380,7 @@ export async function getEpisodeDetails(animeSlug: string, episodeNumber: number
 
     return {
       episodeNumber: episodeData.number,
-      streamingUrl: episodeData.source.length > 0 ? episodeData.source[0].url : 'https://example.com/placeholder-stream',
+      streamingUrl: episodeData.source?.length > 0 ? episodeData.source[0].url : 'https://example.com/placeholder-stream',
       title: episodeData.title || `Episodio ${episodeData.number}`,
     };
   } catch (error) {
