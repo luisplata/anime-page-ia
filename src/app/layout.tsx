@@ -8,6 +8,7 @@ import { Tv, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ThemeToggle } from '@/components/theme-toggle';
+import ClientUuidProvider from '@/components/client-uuid-provider';
 
 export const metadata: Metadata = {
   title: 'AniView',
@@ -28,6 +29,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ClientUuidProvider />
           <div className="flex min-h-screen w-full flex-col">
             <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
               <Link href="/" className="flex items-center gap-2 text-lg font-semibold md:text-base">

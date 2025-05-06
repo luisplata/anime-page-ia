@@ -7,6 +7,8 @@
  * throughout the application.
  */
 
+import { cookies } from 'next/headers';
+
 // Base URL for the anime API, configured via environment variable
 const API_BASE_URL = process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT;
 
@@ -192,10 +194,28 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
     throw new Error("API base URL is not configured. Please set NEXT_PUBLIC_ANIME_API_ENDPOINT.");
   }
 
+  let clientUUID = '';
+  try {
+    // Try to get UUID from cookie if in a context that supports it (Server Components, Route Handlers)
+    const cookieStore = cookies();
+    const uuidCookie = cookieStore.get('client-uuid');
+    if (uuidCookie && uuidCookie.value) {
+      clientUUID = uuidCookie.value;
+    } else {
+      // If cookie is not found, generate a new UUID for this request
+      clientUUID = generateUUID();
+    }
+  } catch (error) {
+    // Fallback if cookies() cannot be accessed (e.g., during build time, or other contexts)
+    // console.warn("Could not access cookies, generating new UUID for API request.");
+    clientUUID = generateUUID(); // Generate a new UUID for this request
+  }
+
+
   const url = `${API_BASE_URL}${endpoint}`;
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
-    'X-Client-UUID': generateUUID(), // As per Postman collection
+    'X-Client-UUID': clientUUID, 
   };
 
   const response = await fetch(url, {
@@ -234,7 +254,7 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
-    return Array.from({ length: 20 }, (_, i) => ({ // Increased length to 20 for 5 rows of 4
+    return Array.from({ length: 20 }, (_, i) => ({ 
       animeId: `error-ep-${i + 1}`,
       animeTitle: `Error Anime ${i + 1}`,
       episodeNumber: 1,
@@ -259,7 +279,7 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
-    return Array.from({ length: 20 }, (_, i) => ({ // Placeholder for 5 rows of 4
+    return Array.from({ length: 20 }, (_, i) => ({ 
       id: `error-dir-${i + 1}`,
       title: `Error Anime Series ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-dir-${i+1}/300/300`,
@@ -284,7 +304,7 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
       coverUrl: anime.image || `https://picsum.photos/seed/${animeId}/400/600`,
       episodes: (anime.episodes || []).map((ep): Episode => ({
         episodeNumber: ep.number,
-        streamingSources: ep.sources?.map(source => ({ // Ensure this maps all sources
+        streamingSources: ep.sources?.map(source => ({ 
           name: source.name,
           url: source.url,
           quality: source.quality
@@ -323,7 +343,7 @@ export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch latest added anime:", error);
-    return Array.from({ length: 20 }, (_, i) => ({ // Increased length to 20
+    return Array.from({ length: 20 }, (_, i) => ({ 
       id: `error-new-${i + 1}`,
       title: `Error Anime Nuevo ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-new-${i+1}/300/300`,
