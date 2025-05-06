@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ListCollapse } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListCollapse, AlertTriangle, PlayCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 interface EpisodePlayerPageProps {
   params: { animeId: string; episodeNumber: string };
@@ -24,12 +26,15 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
     console.error("Failed to fetch anime/episode details:", error);
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-3xl font-bold text-destructive">Error</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          No se pudo cargar la información del episodio. Por favor, inténtalo de nuevo más tarde.
+        <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+        <h1 className="mt-4 text-3xl font-bold text-destructive">Error al Cargar el Episodio</h1>
+        <p className="mt-2 text-lg text-muted-foreground">
+          No se pudo cargar la información del episodio. Puede que el anime o el episodio no existan, o haya un problema con el servidor.
         </p>
         <Button asChild className="mt-6">
-          <Link href={`/anime/${animeId}`}>Volver a la página del anime</Link>
+          <Link href={animeId ? `/anime/${animeId}` : "/directorio"}>
+            {animeId ? "Volver a la página del anime" : "Volver al Directorio"}
+          </Link>
         </Button>
       </div>
     );
@@ -38,9 +43,10 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
   if (!currentEpisode) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-3xl font-bold">Episodio no encontrado</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          El episodio que estás buscando no existe para este anime.
+        <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h1 className="mt-4 text-3xl font-bold">Episodio no Encontrado</h1>
+        <p className="mt-2 text-lg text-muted-foreground">
+          El episodio {episodeNumber} que estás buscando no existe para {anime?.title || 'este anime'}.
         </p>
         <Button asChild className="mt-6">
           <Link href={`/anime/${animeId}`}>Volver a la página del anime</Link>
@@ -48,10 +54,12 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
       </div>
     );
   }
+  
+  const episodeBaseTitle = `${anime.title} - Episodio ${currentEpisode.episodeNumber}`;
+  const fullEpisodeTitle = currentEpisode.title && currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.episodeNumber}` && currentEpisode.title.toLowerCase() !== `episodio ${currentEpisode.episodeNumber}`
+    ? `${episodeBaseTitle}: ${currentEpisode.title}`
+    : episodeBaseTitle;
 
-  const episodeTitle = currentEpisode.title && currentEpisode.title !== `Episode ${currentEpisode.episodeNumber}` 
-    ? `${anime.title} - Episodio ${currentEpisode.episodeNumber}: ${currentEpisode.title}`
-    : `${anime.title} - Episodio ${currentEpisode.episodeNumber}`;
 
   const prevEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber - 1);
   const nextEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber + 1);
@@ -60,49 +68,52 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
     <div className="container mx-auto px-4 py-8">
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {episodeTitle}
+          {fullEpisodeTitle}
         </h1>
-        <Link href={`/anime/${animeId}`} className="text-sm text-accent hover:underline flex items-center gap-1 mt-1">
-          <ListCollapse className="h-4 w-4" />
-          Volver a {anime.title}
-        </Link>
+        <Button variant="link" asChild className="text-sm text-accent hover:underline flex items-center gap-1 mt-1 px-0">
+          <Link href={`/anime/${animeId}`}>
+            <ListCollapse className="h-4 w-4" />
+            Volver a {anime.title}
+          </Link>
+        </Button>
       </header>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <Card className="overflow-hidden shadow-xl rounded-lg">
-            <AspectRatio ratio={16 / 9} className="bg-muted">
-              {/* Placeholder for Video Player */}
-              {/* In a real app, you'd use a video player component here, e.g., Plyr, ReactPlayer */}
-              {/* <video controls src={currentEpisode.streamingUrl} className="w-full h-full" /> */}
-              <div className="w-full h-full flex items-center justify-center bg-black text-primary-foreground">
-                <p className="text-xl">Video Player Placeholder</p>
-                {/* This is where you'd integrate a video player like react-player or a custom one */}
-                {/* Example: <ReactPlayer url={currentEpisode.streamingUrl} width="100%" height="100%" controls /> */}
-                {/* For now, showing the streaming URL as text */}
-                <p className="text-xs mt-4 p-2 bg-background/10 rounded">Streaming URL: {currentEpisode.streamingUrl}</p>
-              </div>
+            <AspectRatio ratio={16 / 9} className="bg-black">
+              {currentEpisode.streamingUrl && currentEpisode.streamingUrl !== 'https://example.com/placeholder-stream' ? (
+                <iframe
+                  src={currentEpisode.streamingUrl}
+                  title={`Reproductor de ${fullEpisodeTitle}`}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                ></iframe>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-primary-foreground">
+                  <PlayCircle className="h-16 w-16 mb-4 text-muted-foreground" />
+                  <p className="text-xl">Video no disponible</p>
+                  <p className="text-sm text-muted-foreground mt-1">No se encontró una fuente de video para este episodio.</p>
+                </div>
+              )}
             </AspectRatio>
           </Card>
           
           <div className="mt-6 flex justify-between items-center">
-            {prevEpisode ? (
-              <Button asChild variant="outline">
-                <Link href={`/ver/${animeId}/${prevEpisode.episodeNumber}`} className="flex items-center gap-2">
-                  <ChevronLeft className="h-5 w-5" />
-                  Anterior
-                </Link>
-              </Button>
-            ) : <div />} {/* Placeholder for alignment */}
+            <Button asChild variant="outline" disabled={!prevEpisode}>
+              <Link href={prevEpisode ? `/ver/${animeId}/${prevEpisode.episodeNumber}` : '#'} className="flex items-center gap-2" aria-disabled={!prevEpisode}>
+                <ChevronLeft className="h-5 w-5" />
+                Anterior
+              </Link>
+            </Button>
             
-            {nextEpisode ? (
-              <Button asChild variant="outline">
-                <Link href={`/ver/${animeId}/${nextEpisode.episodeNumber}`} className="flex items-center gap-2">
-                  Siguiente
-                  <ChevronRight className="h-5 w-5" />
-                </Link>
-              </Button>
-            ) : <div />} {/* Placeholder for alignment */}
+            <Button asChild variant="outline" disabled={!nextEpisode}>
+              <Link href={nextEpisode ? `/ver/${animeId}/${nextEpisode.episodeNumber}` : '#'} className="flex items-center gap-2" aria-disabled={!nextEpisode}>
+                Siguiente
+                <ChevronRight className="h-5 w-5" />
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -112,22 +123,25 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
                     <CardTitle className="text-xl">Más episodios de {anime.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ul className="max-h-[500px] overflow-y-auto space-y-2 pr-2">
-                        {anime.episodes.map(ep => (
-                            <li key={ep.episodeNumber}>
-                                <Button 
-                                  variant={ep.episodeNumber === currentEpisode?.episodeNumber ? "secondary" : "ghost"} 
-                                  asChild 
-                                  className={`w-full justify-start ${ep.episodeNumber === currentEpisode?.episodeNumber ? 'font-semibold' : ''}`}
-                                >
-                                    <Link href={`/ver/${animeId}/${ep.episodeNumber}`}>
-                                        Episodio {ep.episodeNumber}{ep.title && ep.title !== `Episode ${ep.episodeNumber}` ? `: ${ep.title}` : ''}
-                                    </Link>
-                                </Button>
-                                {ep.episodeNumber !== anime.episodes.length && <Separator className="mt-2"/> }
-                            </li>
-                        ))}
-                    </ul>
+                    <ScrollArea className="max-h-[calc(16/9*50vw-100px)] lg:max-h-[500px] pr-2"> {/* Adjust height based on video aspect ratio for smaller screens */}
+                      <ul className="space-y-2">
+                          {anime.episodes.map(ep => (
+                              <li key={ep.episodeNumber}>
+                                  <Button 
+                                    variant={ep.episodeNumber === currentEpisode?.episodeNumber ? "secondary" : "ghost"} 
+                                    asChild 
+                                    className={`w-full justify-start text-left h-auto py-2 px-3 ${ep.episodeNumber === currentEpisode?.episodeNumber ? 'font-semibold' : ''}`}
+                                  >
+                                      <Link href={`/ver/${animeId}/${ep.episodeNumber}`} className="block truncate">
+                                          Ep. {ep.episodeNumber}{ep.title && ep.title.toLowerCase() !== `episode ${ep.episodeNumber}`  && ep.title.toLowerCase() !== `episodio ${ep.episodeNumber}` ? `: ${ep.title}` : ''}
+                                      </Link>
+                                  </Button>
+                                  {/* Consider removing separator if list is long or use it only for non-last item */}
+                                  {ep.episodeNumber !== anime.episodes[anime.episodes.length - 1].episodeNumber && <Separator className="mt-2"/> }
+                              </li>
+                          ))}
+                      </ul>
+                    </ScrollArea>
                 </CardContent>
             </Card>
         </div>
@@ -137,19 +151,26 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
 }
 
 export async function generateMetadata({ params }: EpisodePlayerPageProps) {
+  const { animeId, episodeNumber: episodeNumberStr } = params;
+  const episodeNumber = parseInt(episodeNumberStr, 10);
   try {
-    const anime = await getAnimeDetail(params.animeId);
-    const episode = anime.episodes.find(ep => ep.episodeNumber === parseInt(params.episodeNumber, 10));
-    const episodeTitle = episode?.title && episode.title !== `Episode ${episode.episodeNumber}` ? `: ${episode.title}` : '';
+    const anime = await getAnimeDetail(animeId);
+    const currentEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber);
+    
+    const episodeBaseTitle = `${anime.title || 'Anime'} - Episodio ${episodeNumber}`;
+    const fullEpisodeTitle = currentEpisode?.title && currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.episodeNumber}` && currentEpisode.title.toLowerCase() !== `episodio ${currentEpisode.episodeNumber}`
+      ? `${episodeBaseTitle}: ${currentEpisode.title}`
+      : episodeBaseTitle;
 
     return {
-      title: `Ver ${anime.title} Episodio ${params.episodeNumber}${episodeTitle} - AniView`,
-      description: `Mira el episodio ${params.episodeNumber} de ${anime.title}. ${anime.description.substring(0,100)}...`,
+      title: `Ver ${fullEpisodeTitle} - AniView`,
+      description: `Mira el episodio ${episodeNumber} de ${anime.title || 'este anime'}. ${anime.description ? anime.description.substring(0,100) + '...' : ''}`,
     };
   } catch (error) {
+    console.error(`Metadata generation error for ${animeId}/${episodeNumber}:`, error);
     return {
-      title: "Episodio no encontrado - AniView",
-      description: "La página de este episodio no pudo ser encontrada.",
+      title: `Episodio ${episodeNumber} no Encontrado - AniView`,
+      description: "La página de este episodio no pudo ser encontrada o no está disponible.",
     };
   }
 }

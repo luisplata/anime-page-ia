@@ -15,12 +15,19 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
   const isEpisode = (item: AnimeListing | NewEpisode): item is NewEpisode => type === 'episode';
   
   const href = isEpisode(anime) ? `/ver/${anime.animeId}/${anime.episodeNumber}` : `/anime/${anime.id}`;
-  const title = isEpisode(anime) ? `${anime.animeTitle} - Episodio ${anime.episodeNumber}` : anime.title;
+  
+  let title: string;
+  if (isEpisode(anime)) {
+    title = `${anime.animeTitle} - Episodio ${anime.episodeNumber}`;
+  } else {
+    title = anime.title;
+  }
   
   const idForSeed = isEpisode(anime) ? anime.animeId : anime.id;
-  const thumbnailUrl = anime.thumbnailUrl.includes('https://example.com') 
-    ? `https://picsum.photos/seed/${idForSeed}/300/300` 
-    : anime.thumbnailUrl;
+  // Use actual thumbnail URL from API. Fallback to picsum only if thumbnailUrl is missing or a known placeholder.
+  const thumbnailUrl = anime.thumbnailUrl && !anime.thumbnailUrl.includes('https://example.com/missing.jpg') 
+    ? anime.thumbnailUrl 
+    : `https://picsum.photos/seed/${idForSeed}/300/300`;
 
   const imageAlt = isEpisode(anime) ? `Thumbnail for ${anime.animeTitle} Episode ${anime.episodeNumber}` : `Thumbnail for ${anime.title}`;
   const dataAiHint = isEpisode(anime) ? "anime episode" : "anime cover";
@@ -35,16 +42,17 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
               src={thumbnailUrl}
               alt={imageAlt}
               fill
-              sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, 25vw" // Adjusted sizes for 2, 3, and 4 column layouts
+              sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) 25vw, 20vw" // Adjusted for more breakpoints
               className="object-cover"
               data-ai-hint={dataAiHint}
-              priority={isEpisode(anime) && anime.episodeNumber < 5} // Prioritize loading images for first few new episodes
+              priority={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5} // Prioritize loading images for first few new episodes
+              unoptimized={thumbnailUrl.startsWith('http://')} // Add unoptimized for HTTP images
             />
           </div>
         </CardHeader>
         <CardContent className="p-3"> 
           <CardTitle className="text-base font-semibold leading-tight truncate group-hover:text-accent transition-colors"> 
-            {title}
+            {title || "Título no disponible"}
           </CardTitle>
         </CardContent>
       </Link>
@@ -59,4 +67,3 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
     </Card>
   );
 }
-

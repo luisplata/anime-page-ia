@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaySquare, ListVideo } from 'lucide-react';
+import { PlaySquare, ListVideo, AlertTriangle } from 'lucide-react';
 
 interface AnimeDetailPageProps {
   params: { id: string };
@@ -18,19 +18,25 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   try {
     anime = await getAnimeDetail(animeId);
   } catch (error) {
-    // Basic error handling, you might want to redirect to a 404 page or show an error message
     console.error("Failed to fetch anime details:", error);
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-3xl font-bold text-destructive">Error</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          No se pudo cargar la información del anime. Por favor, inténtalo de nuevo más tarde.
+        <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+        <h1 className="mt-4 text-3xl font-bold text-destructive">Error al cargar el Anime</h1>
+        <p className="mt-2 text-lg text-muted-foreground">
+          No se pudo cargar la información del anime. Por favor, inténtalo de nuevo más tarde o verifica que el ID sea correcto.
         </p>
+        <Button asChild className="mt-6">
+          <Link href="/directorio">Volver al Directorio</Link>
+        </Button>
       </div>
     );
   }
   
-  const coverUrl = anime.coverUrl.includes('https://example.com') ? `https://picsum.photos/seed/${anime.id}/400/600` : anime.coverUrl;
+  // The API provides full URLs, so no need for picsum fallback unless explicitly desired for missing images
+  // const coverUrl = anime.coverUrl.includes('https://example.com') ? `https://picsum.photos/seed/${anime.id}/400/600` : anime.coverUrl;
+  const coverUrl = anime.coverUrl || `https://picsum.photos/seed/${anime.id}/400/600`;
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -45,6 +51,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                 className="object-cover"
                 data-ai-hint="anime cover art"
                 priority
+                unoptimized={coverUrl.startsWith('http://')} // Necessary if API serves HTTP images
               />
             </div>
           </Card>
@@ -60,7 +67,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
               <CardTitle className="text-2xl">Descripción</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed">{anime.description}</p>
+              <p className="text-muted-foreground leading-relaxed">{anime.description || "Descripción no disponible."}</p>
             </CardContent>
           </Card>
 
@@ -80,7 +87,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                           <div className="flex-grow">
                             <span className="font-medium text-foreground block">
                               Episodio {episode.episodeNumber}
-                              {episode.title && episode.title !== `Episode ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
+                              {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
                             </span>
                           </div>
                         </Link>
@@ -100,26 +107,19 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   );
 }
 
-// Generate static paths for better SEO and performance (optional, depends on your API and build times)
-// export async function generateStaticParams() {
-//   // const animeDirectory = await getAnimeDirectory(); // Assuming this returns all anime with IDs
-//   // return animeDirectory.map((anime) => ({
-//   //   id: anime.id,
-//   // }));
-//   return []; // Placeholder, implement if needed
-// }
 
 export async function generateMetadata({ params }: AnimeDetailPageProps) {
   try {
+    // Fetch only necessary data for metadata if possible, or reuse if full fetch is quick
     const anime = await getAnimeDetail(params.id);
     return {
-      title: `${anime.title} - AniView`,
-      description: anime.description.substring(0, 160), // Truncate for meta description
+      title: `${anime.title || 'Anime Desconocido'} - AniView`,
+      description: anime.description ? anime.description.substring(0, 160) : `Detalles sobre ${anime.title || 'este anime'}.`,
     };
   } catch (error) {
     return {
       title: "Anime no encontrado - AniView",
-      description: "La página de este anime no pudo ser encontrada.",
+      description: "La página de este anime no pudo ser encontrada o no está disponible.",
     };
   }
 }
