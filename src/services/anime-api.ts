@@ -322,7 +322,7 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
   } catch (error) {
     console.error(`Failed to fetch details for anime ${animeId}:`, error);
     return {
-      id: animeId,
+      id: `error-detail-${animeId}`, // Keep animeId for identification if possible
       title: `Anime no encontrado: ${animeId}`,
       description: "No se pudo cargar la descripción de este anime.",
       coverUrl: 'https://picsum.photos/seed/error-detail/400/600',
@@ -408,3 +408,6 @@ export async function getEpisodeDetails(animeSlug: string, episodeNumber: number
     return null;
   }
 }
+
+
+    
