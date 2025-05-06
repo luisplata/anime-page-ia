@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 
 const geistSans = GeistSans({
   variable: '--font-geist-sans',
-  subsets: ['latin'],
+  // subsets: ['latin'], // GeistSans doesn't take subsets like Google Fonts
 });
 
 export const metadata: Metadata = {
