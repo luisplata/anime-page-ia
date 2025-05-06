@@ -10,36 +10,36 @@
 // Base URL for the anime API, configured via environment variable
 const API_BASE_URL = process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT;
 
-// --- Internal API Response Interfaces (matching Postman collection) ---
+// --- Internal API Response Interfaces (matching Postman collection and new structure) ---
+
+interface ApiEpisodeSource {
+  name: string;
+  url: string;
+  quality?: string;
+}
+
+interface ApiEpisode { // Represents an episode object within AnimeDetail or as a standalone specific episode
+  id: number; // Numeric ID of the episode
+  title?: string;
+  number: number;
+  sources: ApiEpisodeSource[]; // Changed from 'source' to 'sources'
+  anime_id?: number; // Present in specific_episode response from API
+}
 
 interface ApiAnimeBase {
   id: number; // Numeric ID from API
-  name: string[];
+  title: string; // Changed from name: string[] to title: string
   slug: string;
   description: string;
   image: string;
-  // Add other fields if needed, e.g., status, type, etc.
 }
 
 interface ApiAnimeListItem extends ApiAnimeBase {
   // Specific fields for list items if any
 }
 
-interface ApiEpisodeSource {
-  name: string;
-  url: string;
-}
-
-interface ApiEpisodeCap {
-  id: number; // Numeric ID
-  title?: string;
-  number: number;
-  // link: string; // Relative link like /ver/slug-ep_number
-  source: ApiEpisodeSource[];
-}
-
 interface ApiAnimeDetailResponse extends ApiAnimeBase {
-  caps: ApiEpisodeCap[];
+  episodes: ApiEpisode[]; // Changed from 'caps' to 'episodes'
 }
 
 interface ApiPagedResponse<T> {
@@ -58,18 +58,17 @@ interface ApiPagedResponse<T> {
   total: number;
 }
 
-interface ApiEpisodeListItem {
+interface ApiEpisodeListItem { // For the /api/episodes endpoint (list of latest episodes)
   id: number; // Numeric ID for the episode entry itself
   title?: string; // Episode title
   number: number; // Episode number
-  anime: {
+  anime: { // Nested anime object
     id: number; // Numeric anime ID
-    name: string[];
+    title: string; // Changed from name: string[] to title: string
     slug: string;
     image: string;
-    // Add other anime fields if present in this nested object
   };
-  source: ApiEpisodeSource[];
+  sources: ApiEpisodeSource[]; // Changed from 'source' to 'sources'
 }
 
 
@@ -227,16 +226,15 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
   try {
     const response = await fetchFromApi<ApiPagedResponse<ApiEpisodeListItem>>('/api/episodes?page=1&per_page=20'); // Fetch first 20
     return response.data.map((ep): NewEpisode => ({
-      animeId: ep.anime?.slug || `unknown-anime-${ep.id}`,
-      animeTitle: Array.isArray(ep.anime?.name) ? ep.anime.name.join(' ') : (ep.anime?.name || `Anime ${ep.id}`),
+      animeId: ep.anime?.slug || `unknown-anime-${ep.anime?.id || ep.id}`,
+      animeTitle: ep.anime?.title || `Episodio ${ep.number} (Título Desconocido)`,
       episodeNumber: ep.number,
-      thumbnailUrl: ep.anime?.image || `https://picsum.photos/seed/ep-${ep.id}/300/300`,
-      streamingUrl: ep.source?.length > 0 ? ep.source[0].url : 'https://example.com/placeholder-stream', // Fallback
+      thumbnailUrl: ep.anime?.image || `https://picsum.photos/seed/ep-${ep.anime?.id || ep.id}/300/300`,
+      streamingUrl: ep.sources?.length > 0 ? ep.sources[0].url : 'https://example.com/placeholder-stream',
     }));
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
-    // Return a limited number of mock items on error to prevent breaking UI
-    return Array.from({ length: 5 }, (_, i) => ({ // Reduced mock count
+    return Array.from({ length: 5 }, (_, i) => ({
       animeId: `error-ep-${i + 1}`,
       animeTitle: `Error Anime ${i + 1}`,
       episodeNumber: 1,
@@ -256,12 +254,12 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
     const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=25'); // Fetch first 25
     return response.data.map((anime): AnimeListing => ({
       id: anime.slug || `unknown-anime-${anime.id}`,
-      title: Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`),
+      title: anime.title || `Anime Desconocido ${anime.id}`,
       thumbnailUrl: anime.image || `https://picsum.photos/seed/anime-${anime.id}/300/300`,
     }));
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
-    return Array.from({ length: 5 }, (_, i) => ({ // Reduced mock count
+    return Array.from({ length: 5 }, (_, i) => ({
       id: `error-dir-${i + 1}`,
       title: `Error Anime Series ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-dir-${i+1}/300/300`,
@@ -278,21 +276,20 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
 export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
   try {
     const anime = await fetchFromApi<ApiAnimeDetailResponse>(`/api/anime/${animeId}`);
-    const title = Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`);
+    const title = anime.title || `Anime Desconocido ${anime.id}`;
     return {
       id: anime.slug || animeId,
       title: title,
       description: anime.description?.startsWith('/') ? `Description for ${title} (placeholder from API)` : (anime.description || "No description available."),
       coverUrl: anime.image || `https://picsum.photos/seed/${animeId}/400/600`,
-      episodes: (anime.caps || []).map((cap): Episode => ({
-        episodeNumber: cap.number,
-        streamingUrl: cap.source?.length > 0 ? cap.source[0].url : 'https://example.com/placeholder-stream', // Fallback
-        title: cap.title || `Episodio ${cap.number}`,
-      })).sort((a, b) => a.episodeNumber - b.episodeNumber), // Ensure episodes are sorted
+      episodes: (anime.episodes || []).map((ep): Episode => ({
+        episodeNumber: ep.number,
+        streamingUrl: ep.sources?.length > 0 ? ep.sources[0].url : 'https://example.com/placeholder-stream',
+        title: ep.title || `Episodio ${ep.number}`,
+      })).sort((a, b) => a.episodeNumber - b.episodeNumber),
     };
   } catch (error) {
     console.error(`Failed to fetch details for anime ${animeId}:`, error);
-    // Provide a minimal fallback to prevent page crash
     return {
       id: animeId,
       title: `Anime no encontrado: ${animeId}`,
@@ -314,16 +311,15 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
  */
 export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
   try {
-    // Assuming the default order of /api/animes returns latest added first, or use a specific query param if API supports it.
     const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=20'); // Fetch first 20
     return response.data.map((anime): AnimeListing => ({
       id: anime.slug || `unknown-anime-${anime.id}`,
-      title: Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`),
+      title: anime.title || `Anime Desconocido ${anime.id}`,
       thumbnailUrl: anime.image || `https://picsum.photos/seed/new-anime-${anime.id}/300/300`,
     }));
   } catch (error) {
     console.error("Failed to fetch latest added anime:", error);
-    return Array.from({ length: 5 }, (_, i) => ({ // Reduced mock count
+    return Array.from({ length: 5 }, (_, i) => ({
       id: `error-new-${i + 1}`,
       title: `Error Anime Nuevo ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-new-${i+1}/300/300`,
@@ -342,16 +338,15 @@ export async function searchAnime(query: string): Promise<AnimeListing[]> {
     return [];
   }
   try {
-    // The API seems to return a direct array for search, not a paginated response.
     const results = await fetchFromApi<ApiAnimeListItem[]>(`/api/animes/search?q=${encodeURIComponent(query)}`);
     return results.map((anime): AnimeListing => ({
       id: anime.slug || `unknown-search-${anime.id}`,
-      title: Array.isArray(anime.name) ? anime.name.join(' ') : (anime.name || `Anime ${anime.id}`),
+      title: anime.title || `Anime Desconocido ${anime.id}`,
       thumbnailUrl: anime.image || `https://picsum.photos/seed/search-${anime.id}/300/300`,
     }));
   } catch (error) {
     console.error(`Failed to search for anime with query "${query}":`, error);
-    return []; // Return empty array on error
+    return [];
   }
 }
 
@@ -360,31 +355,26 @@ export async function searchAnime(query: string): Promise<AnimeListing[]> {
  * Retrieves a specific episode's details, primarily its streaming sources.
  * Corresponds to Postman's "specific_episode" request.
  * The API endpoint seems to be `/api/episodes/{anime_slug}-{episode_number}`.
- * This function might be used if we need more details than what `getAnimeDetail` provides per episode.
- * For the current app structure, `getAnimeDetail` should be sufficient as it includes episode sources.
- * However, implementing this for completeness or future use.
  *
  * @param animeSlug The slug of the anime.
  * @param episodeNumber The episode number.
  * @returns A promise that resolves to an Episode object or null if not found/error.
  */
 export async function getEpisodeDetails(animeSlug: string, episodeNumber: number): Promise<Episode | null> {
-  const episodeId = `${animeSlug}-${episodeNumber}`;
+  const episodeIdPath = `${animeSlug}-${episodeNumber}`;
   try {
-    // The API for specific episode seems to return an object with structure similar to ApiEpisodeListItem or a direct ApiEpisodeCap
-    // Assuming it returns an object that contains at least title, number, and source.
-    // Let's assume it's like ApiEpisodeListItem for mapping
-    const episodeData = await fetchFromApi<ApiEpisodeListItem>(`/api/episodes/${episodeId}`);
+    // Assuming the response for a specific episode is similar to the ApiEpisode structure.
+    const episodeData = await fetchFromApi<ApiEpisode>(`/api/episodes/${episodeIdPath}`);
 
     if (!episodeData) return null;
 
     return {
       episodeNumber: episodeData.number,
-      streamingUrl: episodeData.source?.length > 0 ? episodeData.source[0].url : 'https://example.com/placeholder-stream',
+      streamingUrl: episodeData.sources?.length > 0 ? episodeData.sources[0].url : 'https://example.com/placeholder-stream',
       title: episodeData.title || `Episodio ${episodeData.number}`,
     };
   } catch (error) {
-    console.error(`Failed to fetch details for episode ${episodeId}:`, error);
+    console.error(`Failed to fetch details for episode ${episodeIdPath}:`, error);
     return null;
   }
 }
