@@ -93,22 +93,14 @@ export interface NewEpisode {
  */
 export async function getLatestEpisodes(): Promise<NewEpisode[]> {
   // TODO: Implement this by calling an API.
-  return [
-    {
-      animeId: '1',
-      animeTitle: 'Example Anime',
-      episodeNumber: 1,
-      thumbnailUrl: 'https://example.com/thumbnail1.jpg',
-      streamingUrl: 'https://example.com/stream1',
-    },
-    {
-      animeId: '2',
-      animeTitle: 'Another Anime',
-      episodeNumber: 5,
-      thumbnailUrl: 'https://example.com/thumbnail2.jpg',
-      streamingUrl: 'https://example.com/stream2',
-    },
-  ];
+  // Mock 20 items for a 4x5 grid
+  return Array.from({ length: 20 }, (_, i) => ({
+    animeId: `${i + 1}`,
+    animeTitle: `Anime Épico ${String.fromCharCode(65 + (i % 5))}`, // Cycle through 5 anime titles
+    episodeNumber: i + 1,
+    thumbnailUrl: 'https://example.com/thumbnail_ep.jpg', // Placeholder, AnimeCard will change this
+    streamingUrl: `https://example.com/stream_ep_${i + 1}`,
+  }));
 }
 
 /**
@@ -118,18 +110,12 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
  */
 export async function getAnimeDirectory(): Promise<AnimeListing[]> {
   // TODO: Implement this by calling an API.
-  return [
-    {
-      id: '1',
-      title: 'Example Anime',
-      thumbnailUrl: 'https://example.com/thumbnail1.jpg',
-    },
-    {
-      id: '2',
-      title: 'Another Anime',
-      thumbnailUrl: 'https://example.com/thumbnail2.jpg',
-    },
-  ];
+  // Mocking more items for directory potentially
+  return Array.from({ length: 25 }, (_, i) => ({
+    id: `dir-${i + 1}`,
+    title: `Serie de Anime ${i + 1}`,
+    thumbnailUrl: 'https://example.com/thumbnail_dir.jpg', // Placeholder
+  }));
 }
 
 /**
@@ -140,22 +126,31 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
  */
 export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
   // TODO: Implement this by calling an API.
+  const exampleTitle = animeId.startsWith('dir-') ? `Serie de Anime ${animeId.split('-')[1]}` : `Anime Épico ${String.fromCharCode(65 + (parseInt(animeId,10)-1 % 5))}`;
   return {
     id: animeId,
-    title: 'Example Anime',
-    description: 'This is an example anime description.',
-    coverUrl: 'https://example.com/cover.jpg',
-    episodes: [
-      {
-        episodeNumber: 1,
-        streamingUrl: 'https://example.com/stream1',
-        title: 'Episode 1',
-      },
-      {
-        episodeNumber: 2,
-        streamingUrl: 'https://example.com/stream2',
-        title: 'Episode 2',
-      },
-    ],
+    title: `Detalles de ${exampleTitle}`,
+    description: `Esta es una descripción detallada para ${exampleTitle}. Contiene información sobre la trama, personajes y más.`,
+    coverUrl: 'https://example.com/cover.jpg', // Placeholder
+    episodes: Array.from({ length: 12 }, (_, i) => ({ // Mock 12 episodes
+      episodeNumber: i + 1,
+      streamingUrl: `https://example.com/stream_detail_${animeId}_ep_${i + 1}`,
+      title: `Episodio ${i + 1}: La Aventura Comienza`,
+    })),
   };
+}
+
+/**
+ * Asynchronously retrieves the latest added anime series.
+ *
+ * @returns A promise that resolves to an array of AnimeListing objects.
+ */
+export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
+  // TODO: Implement this by calling an API.
+  // Mock 20 items for a 4x5 grid
+  return Array.from({ length: 20 }, (_, i) => ({
+    id: `new-${i + 1}`,
+    title: `Anime Recién Agregado ${i + 1}`,
+    thumbnailUrl: 'https://example.com/thumbnail_new.jpg', // Placeholder
+  }));
 }
