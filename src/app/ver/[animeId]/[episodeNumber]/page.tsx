@@ -1,3 +1,4 @@
+
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,8 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ListCollapse, AlertTriangle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import EpisodePlayerClient from './episode-player-client'; // Import the new client component
+import EpisodePlayerClient from './episode-player-client'; 
+import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 
 
 interface EpisodePlayerPageProps {
@@ -67,15 +69,22 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {fullEpisodeTitle}
-        </h1>
-        <Button variant="link" asChild className="text-sm text-accent hover:underline flex items-center gap-1 mt-1 px-0">
-          <Link href={`/anime/${animeId}`}>
-            <ListCollapse className="h-4 w-4" />
-            Volver a {anime.title}
-          </Link>
-        </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {fullEpisodeTitle}
+            </h1>
+            <Button variant="link" asChild className="text-sm text-accent hover:underline flex items-center gap-1 mt-1 px-0">
+              <Link href={`/anime/${animeId}`}>
+                <ListCollapse className="h-4 w-4" />
+                Volver a {anime.title}
+              </Link>
+            </Button>
+          </div>
+          <div className="mt-2 sm:mt-0">
+             <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} className="w-full sm:w-auto" size="default" />
+          </div>
+        </div>
       </header>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -109,7 +118,7 @@ export default async function EpisodePlayerPage({ params }: EpisodePlayerPagePro
                     <CardTitle className="text-xl">Más episodios de {anime.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ScrollArea className="max-h-[calc(16/9*50vw-100px)] lg:max-h-[500px] pr-2"> {/* Adjust height based on video aspect ratio for smaller screens */}
+                    <ScrollArea className="max-h-[calc(16/9*50vw-100px)] lg:max-h-[500px] pr-2"> 
                       <ul className="space-y-2">
                           {anime.episodes.map(ep => (
                               <li key={ep.episodeNumber}>

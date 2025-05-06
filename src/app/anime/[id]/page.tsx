@@ -1,3 +1,4 @@
+
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { PlaySquare, ListVideo, AlertTriangle } from 'lucide-react';
+import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 
 interface AnimeDetailPageProps {
   params: { id: string };
@@ -33,8 +35,6 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
     );
   }
   
-  // The API provides full URLs, so no need for picsum fallback unless explicitly desired for missing images
-  // const coverUrl = anime.coverUrl.includes('https://example.com') ? `https://picsum.photos/seed/${anime.id}/400/600` : anime.coverUrl;
   const coverUrl = anime.coverUrl || `https://picsum.photos/seed/${anime.id}/400/600`;
 
 
@@ -51,7 +51,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                 className="object-cover"
                 data-ai-hint="anime cover art"
                 priority
-                unoptimized={coverUrl.startsWith('http://')} // Necessary if API serves HTTP images
+                unoptimized={coverUrl.startsWith('http://')} 
               />
             </div>
           </Card>
@@ -60,6 +60,9 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
         <div className="md:col-span-2">
           <header className="mb-6">
             <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{anime.title}</h1>
+            <div className="mt-4">
+              <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="lg" />
+            </div>
           </header>
           
           <Card className="mb-6 shadow-lg rounded-lg">
@@ -110,7 +113,6 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
 
 export async function generateMetadata({ params }: AnimeDetailPageProps) {
   try {
-    // Fetch only necessary data for metadata if possible, or reuse if full fetch is quick
     const anime = await getAnimeDetail(params.id);
     return {
       title: `${anime.title || 'Anime Desconocido'} - AniView`,
