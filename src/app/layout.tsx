@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
@@ -9,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-const geistSans = GeistSans({
-  variable: '--font-geist-sans',
-  // subsets: ['latin'], // GeistSans doesn't take subsets like Google Fonts
-});
+// Removed incorrect GeistSans function call:
+// const geistSans = GeistSans({
+//   variable: '--font-geist-sans',
+// });
+// GeistSans itself provides the variable property.
 
 export const metadata: Metadata = {
   title: 'AniView',
@@ -26,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${geistSans.variable} antialiased`}>
+      <body className={`${GeistSans.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
