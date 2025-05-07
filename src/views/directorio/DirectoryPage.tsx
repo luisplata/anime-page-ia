@@ -3,18 +3,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   getAnimeDirectory, 
-  type AnimeListing, 
-  searchAnimes, 
-  type PaginatedAnimeResponse,
-  type ApiPaginationLink
-} from '@/services/anime-api';
+  searchAnimes} from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Filter, Search, ListX, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
-import type React from 'react';
+import type { PaginatedAnimeResponse } from '@/services/anime-api';
 
 export default function DirectoryPage() {
   const location = useLocation();

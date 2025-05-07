@@ -1,9 +1,8 @@
 
 import { Routes, Route, Link, useNavigate } from 'react-router-dom'; // Import useState and useEffect
-import { Tv, Search, Star } from 'lucide-react';
+import { Search, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input'; // Import useState and useEffect
 import { ThemeToggle } from '@/components/theme-toggle';
-
 // Import views (pages)
 import HomePage from '@/views/HomePage';
 import DirectoryPage from '@/views/directorio/DirectoryPage';
