@@ -1,11 +1,17 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getAnimeDirectory, type AnimeListing, searchAnimes } from '@/services/anime-api';
+import { 
+  getAnimeDirectory, 
+  type AnimeListing, 
+  searchAnimes, 
+  type PaginatedAnimeResponse,
+  type ApiPaginationLink
+} from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Filter, Search, ListX, Loader2 } from 'lucide-react';
+import { Filter, Search, ListX, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
 import type React from 'react';
@@ -16,56 +22,75 @@ export default function DirectoryPage() {
   
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const searchQueryFromUrl = queryParams.get('q') || "";
+  const pageFromUrl = parseInt(queryParams.get('page') || '1', 10);
 
-  const [displayedAnimes, setDisplayedAnimes] = useState<AnimeListing[]>([]);
+  const [animeData, setAnimeData] = useState<PaginatedAnimeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [pageTitle, setPageTitle] = useState("Directorio de Anime");
+  const [pageTitle, setPageTitle] = useState("Directorio de Anime - AniView");
   const [pageDescription, setPageDescription] = useState("Explora nuestra vasta colección de series de anime.");
-  const [currentSearch, setCurrentSearch] = useState(searchQueryFromUrl);
+  
+  // Local state for the input field, synced with URL on submit/mount
+  const [searchInput, setSearchInput] = useState(searchQueryFromUrl);
 
   useEffect(() => {
-    setCurrentSearch(searchQueryFromUrl);
+    setSearchInput(searchQueryFromUrl); // Sync input if URL query 'q' changes directly
   }, [searchQueryFromUrl]);
+
 
   useEffect(() => {
     const fetchAnimes = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        if (currentSearch.trim()) {
-          const results = await searchAnimes(currentSearch.trim());
-          setDisplayedAnimes(results);
+        let response: PaginatedAnimeResponse;
+        if (searchQueryFromUrl.trim()) {
+          response = await searchAnimes(searchQueryFromUrl.trim(), pageFromUrl);
+          setPageTitle(`Resultados para "${searchQueryFromUrl}" (Pág. ${pageFromUrl}) - AniView`);
+          setPageDescription(`Mostrando resultados de búsqueda para "${searchQueryFromUrl}", página ${pageFromUrl}.`);
         } else {
-          const animes = await getAnimeDirectory();
-          setDisplayedAnimes(animes);
+          response = await getAnimeDirectory(pageFromUrl);
+          setPageTitle(`Directorio de Anime (Pág. ${pageFromUrl}) - AniView`);
+          setPageDescription(`Explora nuestra vasta colección de series de anime, página ${pageFromUrl}.`);
         }
+        setAnimeData(response);
       } catch (err) {
         console.error("Error fetching animes:", err);
         setError("No se pudo cargar la información de los animes.");
+        setAnimeData(null); // Clear data on error
       } finally {
         setIsLoading(false);
       }
     };
     fetchAnimes();
-  }, [currentSearch]);
-
-  useEffect(() => {
-    if (currentSearch.trim()) {
-      setPageTitle(`Resultados para "${currentSearch}"`);
-      setPageDescription(`Mostrando resultados de búsqueda para "${currentSearch}".`);
-    } else {
-      setPageTitle("Directorio de Anime - AniView");
-      setPageDescription("Explora nuestra vasta colección de series de anime.");
-    }
-  }, [currentSearch]);
+  }, [searchQueryFromUrl, pageFromUrl]); // Re-fetch if search query or page in URL changes
   
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const query = (e.target as HTMLFormElement).q.value;
-    navigate(`/directorio?q=${encodeURIComponent(query)}`);
+    // const query = (e.target as HTMLFormElement).q.value;
+    const params = new URLSearchParams();
+    if (searchInput.trim()) {
+      params.set('q', searchInput.trim());
+    }
+    params.set('page', '1'); // Reset to page 1 on new search
+    navigate(`/directorio?${params.toString()}`);
   };
+
+  const handlePageChange = (newPage: number) => {
+    if (!animeData || newPage < 1 || newPage > animeData.lastPage || newPage === animeData.currentPage) {
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    params.set('page', newPage.toString());
+    navigate(`${location.pathname}?${params.toString()}`);
+    window.scrollTo(0, 0); // Scroll to top on page change
+  };
+
+  const displayedAnimes = animeData?.animes || [];
+  const currentPage = animeData?.currentPage || 1;
+  const totalPages = animeData?.lastPage || 1;
+  const paginationLinks = animeData?.links || [];
 
   return (
     <>
@@ -76,10 +101,11 @@ export default function DirectoryPage() {
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            {currentSearch.trim() ? `Buscando: "${currentSearch}"` : "Directorio de Anime"}
+            {searchQueryFromUrl.trim() ? `Buscando: "${searchQueryFromUrl}"` : "Directorio de Anime"}
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            {currentSearch.trim() ? `Explora los resultados para tu búsqueda.` : "Explora nuestra vasta colección de series de anime."}
+            {searchQueryFromUrl.trim() ? `Explora los resultados para tu búsqueda.` : "Explora nuestra vasta colección de series de anime."}
+            {animeData && animeData.totalAnimes > 0 && ` (${animeData.totalAnimes} resultados)`}
           </p>
         </header>
 
@@ -94,8 +120,8 @@ export default function DirectoryPage() {
               name="q"
               placeholder="Buscar en el directorio..."
               className="pl-10 w-full"
-              defaultValue={currentSearch}
-              key={currentSearch} 
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
           <Button type="submit" className="flex items-center gap-2">
@@ -110,24 +136,83 @@ export default function DirectoryPage() {
         <Separator className="my-6" />
 
         {isLoading ? (
-          <div className="flex justify-center items-center py-12"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin text-accent" />
+            <p className="ml-4 text-lg">Cargando animes...</p>
+          </div>
         ) : error ? (
           <div className="text-center py-12 text-destructive">{error}</div>
         ) : displayedAnimes.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {displayedAnimes.map((anime) => (
-              <AnimeCard key={anime.id} anime={anime} type="listing" />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {displayedAnimes.map((anime) => (
+                <AnimeCard key={anime.id} anime={anime} type="listing" />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-1 mt-8 flex-wrap gap-y-2">
+                {paginationLinks.map((link, index) => {
+                  let label = link.label;
+                  let isDisabled = !link.url || isLoading || link.active;
+                  let targetPage: number | null = null;
+
+                  if (link.url) {
+                    try {
+                      const urlParams = new URLSearchParams(new URL(link.url).search);
+                      const pageStr = urlParams.get('page');
+                      if (pageStr) targetPage = parseInt(pageStr, 10);
+                    } catch (e) { /* ignore if URL is malformed */ }
+                  }
+                  
+                  if (label === "&laquo; Previous") {
+                    label = ""; // Use Icon instead
+                    if (!animeData?.prevPageUrl) isDisabled = true;
+                    targetPage = currentPage - 1;
+                  } else if (label === "Next &raquo;") {
+                    label = ""; // Use Icon instead
+                    if (!animeData?.nextPageUrl) isDisabled = true;
+                    targetPage = currentPage + 1;
+                  } else if (label === "...") {
+                     isDisabled = true; // ... is not clickable
+                  }
+
+
+                  return (
+                    <Button
+                      key={`${link.label}-${index}-${targetPage}`}
+                      onClick={() => targetPage && handlePageChange(targetPage)}
+                      disabled={isDisabled}
+                      variant={link.active ? 'default' : 'outline'}
+                      size="icon"
+                      className={label === "..." ? "cursor-default" : ""}
+                      aria-label={link.label === "&laquo; Previous" ? "Página anterior" : link.label === "Next &raquo;" ? "Página siguiente" : `Página ${link.label}`}
+                    >
+                      {link.label === "&laquo; Previous" ? <ChevronLeft className="h-4 w-4" /> : 
+                       link.label === "Next &raquo;" ? <ChevronRight className="h-4 w-4" /> : 
+                       label}
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+            <div className="text-center mt-4 text-sm text-muted-foreground">
+              Página {currentPage} de {totalPages}
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <ListX className="h-16 w-16 text-muted-foreground mb-4" />
             <p className="text-xl font-medium text-muted-foreground">
-              {currentSearch ? `No se encontraron resultados para "${currentSearch}"` : "El directorio de anime está vacío."}
+              {searchQueryFromUrl ? `No se encontraron resultados para "${searchQueryFromUrl}"` : "El directorio de anime está vacío."}
             </p>
             <p className="mt-2 text-muted-foreground">
-              {currentSearch ? "Intenta con otra búsqueda o explora el directorio completo." : "Parece que no hemos encontrado ningún anime. Inténtalo de nuevo más tarde."}
+              {searchQueryFromUrl ? "Intenta con otra búsqueda o explora el directorio completo." : "Parece que no hemos encontrado ningún anime. Inténtalo de nuevo más tarde."}
             </p>
+            {searchQueryFromUrl && (
+                <Button variant="link" onClick={() => navigate("/directorio?page=1")} className="mt-2">
+                    Ver todos los animes
+                </Button>
+            )}
           </div>
         )}
       </div>
