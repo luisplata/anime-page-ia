@@ -1,3 +1,4 @@
+
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -119,19 +120,19 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [], 
-    fallback: 'blocking', 
+    fallback: false, 
   };
 };
 
 export const getStaticProps: GetStaticProps<AnimeDetailPageProps> = async (context) => {
-  const id = context.params?.id as string; // This `id` will be URL-decoded by Next.js
+  const id = context.params?.id as string; 
 
   if (!id) {
     return { props: { anime: null, error: "ID de anime no proporcionado." } };
   }
 
   try {
-    const anime = await getAnimeDetail(id); // Call API with original (decoded) id
+    const anime = await getAnimeDetail(id); 
      if (!anime || anime.id.startsWith('error-detail-')) { 
       return { props: { anime: null, error: `No se encontró el anime con ID: ${id}` } };
     }

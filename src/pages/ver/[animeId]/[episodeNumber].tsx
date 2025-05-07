@@ -1,3 +1,4 @@
+
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -141,12 +142,12 @@ export default function EpisodePlayerPage({
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [],
-    fallback: 'blocking',
+    fallback: false, 
   };
 };
 
 export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (context) => {
-  const animeId = context.params?.animeId as string; // This `animeId` will be URL-decoded by Next.js
+  const animeId = context.params?.animeId as string; 
   const episodeNumberStr = context.params?.episodeNumber as string;
   const episodeNumber = parseInt(episodeNumberStr, 10);
 
@@ -155,7 +156,7 @@ export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (con
   }
 
   try {
-    const anime = await getAnimeDetail(animeId); // Call API with original (decoded) animeId
+    const anime = await getAnimeDetail(animeId); 
 
     if (!anime || anime.id.startsWith('error-detail-')) {
       return { props: { anime: null, currentEpisode: null, episodeNumber, error: `Anime con ID ${animeId} no encontrado.` } };
