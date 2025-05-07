@@ -10,15 +10,15 @@ import { PlaySquare, ListVideo, AlertTriangle, Loader2, BookmarkCheck } from 'lu
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-import { useLoading } from '@/contexts/loading-context'; // Import useLoading
+// Removed: import { useLoading } from '@/contexts/loading-context';
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
   const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks();
-  const { showLoader, hideLoader } = useLoading(); // Use global loading context
+  // Removed: const { showLoader, hideLoader } = useLoading();
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
-  const [localIsLoading, setLocalIsLoading] = useState(true); // Renamed to avoid conflict
+  const [localIsLoading, setLocalIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookmarkedEpisodeNumber, setBookmarkedEpisodeNumber] = useState<number | null>(null);
 
@@ -30,53 +30,57 @@ export default function AnimeDetailPage() {
     }
 
     const fetchAnimeDetails = async () => {
-      showLoader();
+      // Removed: showLoader();
       setLocalIsLoading(true);
       setError(null);
+      setAnime(null); // Clear previous data
       try {
         const data = await getAnimeDetail(animeId);
-        if (data) {
+        if (data && data.id) { // Ensure data and data.id exist
           setAnime(data);
-          if (!bookmarksLoading) {
-            setBookmarkedEpisodeNumber(getBookmarkForAnime(data.id));
-          }
-        } else {
+          // The bookmarksLoading check is already part of the hook,
+          // so getBookmarkForAnime will return current value or null if still loading.
+          // We update bookmarkedEpisodeNumber in a separate effect when anime or bookmarks data changes.
+        } else if (data && !data.id && data.title?.includes("Anime no encontrado")) { // Handle fallback from API service
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
+        } else {
+           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
         }
       } catch (err) {
         console.error("Error fetching anime details:", err);
-        setError("Error al cargar la información del anime.");
+        setError(err instanceof Error ? err.message : "Error al cargar la información del anime.");
       } finally {
         setLocalIsLoading(false);
-        hideLoader();
+        // Removed: hideLoader();
       }
     };
     fetchAnimeDetails();
-  }, [animeId, bookmarksLoading, getBookmarkForAnime, showLoader, hideLoader]);
+  }, [animeId]); // Removed showLoader, hideLoader, bookmarksLoading, getBookmarkForAnime from deps
 
   useEffect(() => {
-    if (anime && !bookmarksLoading) {
+    // Update bookmarked episode when anime data is loaded or bookmarks change
+    if (anime && anime.id && !bookmarksLoading) {
         setBookmarkedEpisodeNumber(getBookmarkForAnime(anime.id));
     }
   }, [anime, bookmarksLoading, getBookmarkForAnime]);
 
 
-  if (localIsLoading && !anime) { // Show section loader only if no data yet
+  if (localIsLoading) { // Show local loader while fetching
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
+      <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col justify-center items-center">
         <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
         <p className="mt-4 text-lg text-muted-foreground">Cargando detalles del anime...</p>
       </div>
     );
   }
 
-  if (error || !anime) {
+  if (error || !anime || !anime.id) { // Check anime.id to ensure it's a valid anime object
     return (
       <>
         <Helmet>
           <title>Error - AniView</title>
         </Helmet>
-        <div className="container mx-auto px-4 py-8 text-center">
+        <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col justify-center items-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
           <h1 className="mt-4 text-3xl font-bold text-destructive">Error al cargar el Anime</h1>
           <p className="mt-2 text-lg text-muted-foreground">

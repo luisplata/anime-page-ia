@@ -5,7 +5,7 @@ import { AnimeCard } from '@/components/anime-card';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
 import { Loader2 } from 'lucide-react';
-import { useLoading } from '@/contexts/loading-context'; // Import useLoading
+// Removed: import { useLoading } from '@/contexts/loading-context';
 
 export default function HomePage() {
   const [latestEpisodes, setLatestEpisodes] = useState<NewEpisode[]>([]);
@@ -14,11 +14,11 @@ export default function HomePage() {
   const [localLoadingAddedAnime, setLocalLoadingAddedAnime] = useState(true);
   const [errorEpisodes, setErrorEpisodes] = useState<string | null>(null);
   const [errorAddedAnime, setErrorAddedAnime] = useState<string | null>(null);
-  const { showLoader, hideLoader } = useLoading(); // Use global loading context
+  // Removed: const { showLoader, hideLoader } = useLoading();
 
   useEffect(() => {
-    const fetchData = async () => {
-      showLoader(); // Show global loader
+    const fetchLatestEpisodes = async () => {
+      // Removed: showLoader(); for episodes
       setLocalLoadingEpisodes(true);
       setErrorEpisodes(null);
       try {
@@ -29,8 +29,12 @@ export default function HomePage() {
         setErrorEpisodes(err instanceof Error ? err.message : "Failed to load latest episodes.");
       } finally {
         setLocalLoadingEpisodes(false);
+        // Removed: hideLoader(); for episodes, if it was the only one
       }
+    };
 
+    const fetchLatestAddedAnime = async () => {
+      // Removed: showLoader(); for added anime
       setLocalLoadingAddedAnime(true);
       setErrorAddedAnime(null);
       try {
@@ -41,17 +45,19 @@ export default function HomePage() {
         setErrorAddedAnime(err instanceof Error ? err.message : "Failed to load latest added anime.");
       } finally {
         setLocalLoadingAddedAnime(false);
-        hideLoader(); // Hide global loader after all fetches are done
+        // Removed: hideLoader(); if it was the only/last one
       }
     };
-    fetchData();
-  }, [showLoader, hideLoader]); // Add showLoader and hideLoader to dependencies
+
+    fetchLatestEpisodes();
+    fetchLatestAddedAnime();
+  }, []); // Removed showLoader, hideLoader from dependencies
 
   const renderSection = <T extends AnimeListing | NewEpisode>(
     title: string,
     description: string,
     data: T[],
-    isLoading: boolean, // Use local loading state for section
+    isLoading: boolean,
     error: string | null,
     type: 'episode' | 'listing',
     emptyMessage: string,
@@ -66,13 +72,13 @@ export default function HomePage() {
           {description}
         </p>
       </header>
-      {isLoading ? ( // Use local isLoading for section-specific loader
-        <div className="flex justify-center items-center py-12">
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12 min-h-[200px]"> {/* Added min-h for better visual */}
           <Loader2 className="h-12 w-12 animate-spin text-accent" />
-          <p className="ml-4 text-lg">Cargando {title.toLowerCase()}...</p>
+          <p className="ml-4 text-lg text-muted-foreground">Cargando {title.toLowerCase()}...</p>
         </div>
       ) : error ? (
-         <div className="text-center py-12 text-destructive">
+         <div className="text-center py-12 text-destructive min-h-[200px]">
             <p className="text-xl font-semibold">Error al cargar {title.toLowerCase()}</p>
             <p className="text-sm mt-1">{error}</p>
         </div>
@@ -84,7 +90,7 @@ export default function HomePage() {
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="flex flex-col items-center justify-center py-12 text-center min-h-[200px]">
           <p className="text-xl font-medium text-muted-foreground">
             {emptyMessage}
           </p>
@@ -107,7 +113,7 @@ export default function HomePage() {
           "Capítulos del Día",
           "Los últimos episodios de tus animes favoritos, recién salidos del horno.",
           latestEpisodes,
-          localLoadingEpisodes, // Pass local loading state
+          localLoadingEpisodes,
           errorEpisodes,
           "episode",
           "No hay nuevos capítulos disponibles en este momento.",
@@ -120,7 +126,7 @@ export default function HomePage() {
           "Últimos Animes Agregados",
           "Descubre las series más recientes añadidas a nuestro catálogo.",
           latestAddedAnime,
-          localLoadingAddedAnime, // Pass local loading state
+          localLoadingAddedAnime,
           errorAddedAnime,
           "listing",
           "No hay animes recién agregados en este momento.",

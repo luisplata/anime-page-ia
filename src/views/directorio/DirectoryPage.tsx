@@ -3,7 +3,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getAnimeDirectory,
-  searchAnimes} from '@/services/anime-api';
+  searchAnimes
+} from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,19 +12,19 @@ import { Filter, Search, ListX, Loader2, ChevronLeft, ChevronRight } from 'lucid
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
 import type { PaginatedAnimeResponse } from '@/services/anime-api';
-import { useLoading } from '@/contexts/loading-context'; // Import useLoading
+// Removed: import { useLoading } from '@/contexts/loading-context';
 
 export default function DirectoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { showLoader, hideLoader } = useLoading(); // Use global loading context
+  // Removed: const { showLoader, hideLoader } = useLoading();
 
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const searchQueryFromUrl = queryParams.get('q') || "";
   const pageFromUrl = parseInt(queryParams.get('page') || '1', 10);
 
   const [animeData, setAnimeData] = useState<PaginatedAnimeResponse | null>(null);
-  const [localIsLoading, setLocalIsLoading] = useState(true); // Renamed to avoid conflict with global isLoading
+  const [localIsLoading, setLocalIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [pageTitle, setPageTitle] = useState("Directorio de Anime - AniView");
@@ -38,9 +39,10 @@ export default function DirectoryPage() {
 
   useEffect(() => {
     const fetchAnimes = async () => {
-      showLoader();
+      // Removed: showLoader();
       setLocalIsLoading(true);
       setError(null);
+      setAnimeData(null); // Clear previous data
       try {
         let response: PaginatedAnimeResponse;
         if (searchQueryFromUrl.trim()) {
@@ -59,11 +61,11 @@ export default function DirectoryPage() {
         setAnimeData(null);
       } finally {
         setLocalIsLoading(false);
-        hideLoader();
+        // Removed: hideLoader();
       }
     };
     fetchAnimes();
-  }, [searchQueryFromUrl, pageFromUrl, showLoader, hideLoader]);
+  }, [searchQueryFromUrl, pageFromUrl]); // Removed showLoader, hideLoader dependencies
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,12 +73,12 @@ export default function DirectoryPage() {
     if (searchInput.trim()) {
       params.set('q', searchInput.trim());
     }
-    params.set('page', '1');
+    params.set('page', '1'); // Reset to page 1 on new search
     navigate(`/directorio?${params.toString()}`);
   };
 
   const handlePageChange = (newPage: number) => {
-    if (!animeData || newPage < 1 || newPage > animeData.lastPage || newPage === animeData.currentPage) {
+    if (!animeData || newPage < 1 || newPage > animeData.lastPage || newPage === animeData.currentPage || localIsLoading) {
       return;
     }
     const params = new URLSearchParams(location.search);
@@ -120,9 +122,10 @@ export default function DirectoryPage() {
               className="pl-10 w-full"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              disabled={localIsLoading}
             />
           </div>
-          <Button type="submit" className="flex items-center gap-2">
+          <Button type="submit" className="flex items-center gap-2" disabled={localIsLoading}>
             <Search className="h-5 w-5" />
             <span>Buscar</span>
           </Button>
@@ -133,13 +136,13 @@ export default function DirectoryPage() {
         </form>
         <Separator className="my-6" />
 
-        {localIsLoading && !animeData ? ( // Show section loader only if no data yet
-          <div className="flex justify-center items-center py-12">
+        {localIsLoading ? (
+          <div className="flex justify-center items-center py-12 min-h-[300px]">
             <Loader2 className="h-12 w-12 animate-spin text-accent" />
-            <p className="ml-4 text-lg">Cargando animes...</p>
+            <p className="ml-4 text-lg text-muted-foreground">Cargando animes...</p>
           </div>
         ) : error ? (
-          <div className="text-center py-12 text-destructive">{error}</div>
+          <div className="text-center py-12 text-destructive min-h-[300px]">{error}</div>
         ) : displayedAnimes.length > 0 ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -156,36 +159,53 @@ export default function DirectoryPage() {
 
                   if (link.url) {
                     try {
-                      const urlParams = new URLSearchParams(new URL(link.url).search);
-                      const pageStr = urlParams.get('page');
+                      // The URL might be absolute or relative, handle robustly
+                      const urlObj = new URL(link.url);
+                      const pageStr = urlObj.searchParams.get('page');
                       if (pageStr) targetPage = parseInt(pageStr, 10);
                     } catch (e) { /* ignore if URL is malformed */ }
                   }
+                  
+                  const isPrev = label === "&laquo; Previous";
+                  const isNext = label === "Next &raquo;";
 
-                  if (label === "&laquo; Previous") {
-                    label = "";
+                  if (isPrev) {
+                    label = ""; // Use icon only
                     if (!animeData?.prevPageUrl) isDisabled = true;
-                    targetPage = currentPage - 1;
-                  } else if (label === "Next &raquo;") {
-                    label = "";
+                    else if (animeData?.prevPageUrl) { // Ensure targetPage is correctly set from prevPageUrl
+                        try {
+                            const urlObj = new URL(animeData.prevPageUrl);
+                            const pageStr = urlObj.searchParams.get('page');
+                            if (pageStr) targetPage = parseInt(pageStr, 10);
+                        } catch (e) { /* ignore */ }
+                    }
+                  } else if (isNext) {
+                    label = ""; // Use icon only
                     if (!animeData?.nextPageUrl) isDisabled = true;
-                    targetPage = currentPage + 1;
+                    else if (animeData?.nextPageUrl) { // Ensure targetPage is correctly set from nextPageUrl
+                        try {
+                            const urlObj = new URL(animeData.nextPageUrl);
+                            const pageStr = urlObj.searchParams.get('page');
+                            if (pageStr) targetPage = parseInt(pageStr, 10);
+                        } catch (e) { /* ignore */ }
+                    }
                   } else if (label === "...") {
                      isDisabled = true;
                   }
 
+
                   return (
                     <Button
-                      key={`${link.label}-${index}-${targetPage}`}
-                      onClick={() => targetPage && handlePageChange(targetPage)}
+                      key={`${link.label}-${index}-${targetPage || 'no-target'}`}
+                      onClick={() => targetPage && !isDisabled && handlePageChange(targetPage)}
                       disabled={isDisabled}
                       variant={link.active ? 'default' : 'outline'}
                       size="icon"
                       className={label === "..." ? "cursor-default" : ""}
-                      aria-label={link.label === "&laquo; Previous" ? "Página anterior" : link.label === "Next &raquo;" ? "Página siguiente" : `Página ${link.label}`}
+                      aria-label={isPrev ? "Página anterior" : isNext ? "Página siguiente" : `Página ${link.label}`}
                     >
-                      {link.label === "&laquo; Previous" ? <ChevronLeft className="h-4 w-4" /> :
-                       link.label === "Next &raquo;" ? <ChevronRight className="h-4 w-4" /> :
+                      {isPrev ? <ChevronLeft className="h-4 w-4" /> :
+                       isNext ? <ChevronRight className="h-4 w-4" /> :
                        label}
                     </Button>
                   );
@@ -197,7 +217,7 @@ export default function DirectoryPage() {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="flex flex-col items-center justify-center py-12 text-center min-h-[300px]">
             <ListX className="h-16 w-16 text-muted-foreground mb-4" />
             <p className="text-xl font-medium text-muted-foreground">
               {searchQueryFromUrl ? `No se encontraron resultados para "${searchQueryFromUrl}"` : "El directorio de anime está vacío."}

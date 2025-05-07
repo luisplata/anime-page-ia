@@ -7,7 +7,7 @@ import { AnimeCard } from '@/components/anime-card';
 import { Button } from '@/components/ui/button';
 import { Star, Loader2, Frown } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
-import { useLoading } from '@/contexts/loading-context'; // Import useLoading
+// Removed: import { useLoading } from '@/contexts/loading-context';
 
 function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
   return {
@@ -19,66 +19,69 @@ function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
 
 export default function FavoritesPage() {
   const { favoriteIds, isLoading: favoritesLoadingHook } = useFavorites();
-  const { showLoader, hideLoader } = useLoading(); // Use global loading context
+  // Removed: const { showLoader, hideLoader } = useLoading();
 
   const [favoriteAnimes, setFavoriteAnimes] = useState<AnimeListing[]>([]);
-  const [localIsLoading, setLocalIsLoading] = useState(true); // Renamed to avoid conflict
+  const [localIsLoading, setLocalIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Initial loading state based on favorites hook
     if (favoritesLoadingHook) {
-      showLoader();
       setLocalIsLoading(true);
       return;
-    } else if(favoriteIds.length > 0){ // Ensure loader is shown if there are favorites to fetch
-      showLoader();
     }
-
 
     if (favoriteIds.length === 0) {
       setFavoriteAnimes([]);
       setLocalIsLoading(false);
-      hideLoader(); // Hide if no favorites or hook is done loading them
       return;
     }
 
     const fetchFavoriteAnimes = async () => {
-      setLocalIsLoading(true);
+      setLocalIsLoading(true); // Set loading true when starting to fetch details
       setError(null);
+      setFavoriteAnimes([]); // Clear previous favorites before fetching new ones
       try {
-        // Fetch all details concurrently
         const animeDetailsPromises = favoriteIds.map(id => getAnimeDetail(id).catch(err => {
             console.error(`Failed to fetch details for favorite ID ${id}:`, err);
-            return null; // Return null on individual fetch error to not break Promise.allSettled
+            return null;
         }));
 
         const results = await Promise.allSettled(animeDetailsPromises);
 
         const successfullyFetchedAnimes: AnimeListing[] = [];
+        let fetchErrorOccurred = false;
         results.forEach(result => {
           if (result.status === 'fulfilled' && result.value) {
             const animeDetail = result.value;
-             if (animeDetail && animeDetail.id) { // Check if animeDetail and its ID are valid
+             if (animeDetail && animeDetail.id && !animeDetail.title?.includes("Anime no encontrado")) {
                 successfullyFetchedAnimes.push(transformDetailToAnimeListing(animeDetail));
              } else {
-                console.warn(`Skipping favorite: Anime details not found or invalid for an ID in favorites list.`);
+                console.warn(`Skipping favorite: Anime details not found or invalid for an ID. Detail:`, animeDetail);
+                fetchErrorOccurred = true; // Mark if any favorite was not properly fetched
              }
           } else if (result.status === 'rejected') {
             console.error("A promise for fetching favorite anime details was rejected:", result.reason);
+            fetchErrorOccurred = true;
           }
         });
+        
         setFavoriteAnimes(successfullyFetchedAnimes);
-      } catch (e) { // This catch might be redundant if individual promises handle errors
+        if (fetchErrorOccurred && successfullyFetchedAnimes.length < favoriteIds.length) {
+             setError("Algunos animes favoritos no pudieron ser cargados. Por favor, revisa la consola para más detalles o intenta más tarde.");
+        }
+
+      } catch (e) {
         console.error("Error fetching favorite animes:", e);
         setError("Ocurrió un error al cargar tus animes favoritos.");
       } finally {
         setLocalIsLoading(false);
-        hideLoader();
       }
     };
 
     fetchFavoriteAnimes();
-  }, [favoriteIds, favoritesLoadingHook, showLoader, hideLoader]);
+  }, [favoriteIds, favoritesLoadingHook]); // Removed showLoader, hideLoader from dependencies
 
   return (
     <>
@@ -94,13 +97,13 @@ export default function FavoritesPage() {
           </h1>
         </header>
 
-        {localIsLoading && favoriteAnimes.length === 0 ? ( // Show section loader only if no data and still loading
-          <div className="flex justify-center items-center py-12">
+        {localIsLoading ? (
+          <div className="flex justify-center items-center py-12 min-h-[300px]">
             <Loader2 className="h-12 w-12 animate-spin text-accent" />
             <p className="ml-4 text-lg text-muted-foreground">Cargando tus favoritos...</p>
           </div>
-        ) : error ? (
-          <div className="text-center py-12">
+        ) : error && favoriteAnimes.length === 0 ? ( // Show general error only if no animes loaded
+          <div className="text-center py-12 min-h-[300px]">
             <Frown className="h-16 w-16 text-destructive mx-auto mb-4" />
             <p className="text-xl text-destructive">{error}</p>
             <Button asChild className="mt-6">
@@ -108,13 +111,20 @@ export default function FavoritesPage() {
             </Button>
           </div>
         ) : favoriteAnimes.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {favoriteAnimes.map((anime) => (
-              <AnimeCard key={anime.id} anime={anime} type="listing" />
-            ))}
-          </div>
+          <>
+            {error && ( // Show partial error message if some animes loaded but others failed
+              <div className="mb-4 p-4 bg-destructive/10 border border-destructive text-destructive rounded-md">
+                <p>{error}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {favoriteAnimes.map((anime) => (
+                <AnimeCard key={anime.id} anime={anime} type="listing" />
+              ))}
+            </div>
+          </>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 min-h-[300px]">
             <Star className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
             <p className="text-xl font-medium text-muted-foreground">
               Aún no has agregado animes a tus favoritos.

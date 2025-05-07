@@ -10,16 +10,16 @@ import { AlertTriangle, ArrowLeft, ListVideo, Loader2, Bookmark, BookmarkCheck }
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-import { useLoading } from '@/contexts/loading-context'; // Import useLoading
+// Removed: import { useLoading } from '@/contexts/loading-context';
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
   const { setBookmark, removeBookmark, isEpisodeBookmarked, isLoading: bookmarksLoading } = useBookmarks();
-  const { showLoader, hideLoader } = useLoading(); // Use global loading context
+  // Removed: const { showLoader, hideLoader } = useLoading();
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
-  const [localIsLoading, setLocalIsLoading] = useState(true); // Renamed to avoid conflict
+  const [localIsLoading, setLocalIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const episodeNumber = parseInt(episodeNumberStr || '', 10);
@@ -38,15 +38,17 @@ export default function EpisodePlayerPage() {
     }
 
     const fetchEpisodeData = async () => {
-      showLoader();
+      // Removed: showLoader();
       setLocalIsLoading(true);
       setError(null);
+      setAnime(null); // Clear previous data
+      setCurrentEpisode(null); // Clear previous episode
       try {
         const animeData = await getAnimeDetail(animeId);
-        if (!animeData) {
+        if (!animeData || !animeData.id) { // Ensure animeData and its id exist
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
           setLocalIsLoading(false);
-          hideLoader();
+          // Removed: hideLoader();
           return;
         }
         setAnime(animeData);
@@ -59,56 +61,64 @@ export default function EpisodePlayerPage() {
 
       } catch (err) {
         console.error(`Failed to fetch episode details for ${animeId}/${episodeNumber}:`, err);
-        setError(`Error al cargar la información del episodio.`);
+        setError(err instanceof Error ? err.message : `Error al cargar la información del episodio.`);
       } finally {
         setLocalIsLoading(false);
-        hideLoader();
+        // Removed: hideLoader();
       }
     };
 
     fetchEpisodeData();
-  }, [animeId, episodeNumberStr, episodeNumber, showLoader, hideLoader]);
+  }, [animeId, episodeNumberStr, episodeNumber]); // Removed showLoader, hideLoader from deps
 
   const handleBookmarkToggle = () => {
-    if (!animeId || isNaN(episodeNumber) || bookmarksLoading) return;
+    if (!animeId || isNaN(episodeNumber) || bookmarksLoading || !anime || !anime.id) return;
 
-    if (isEpisodeBookmarked(animeId, episodeNumber)) {
-      removeBookmark(animeId);
+    if (isEpisodeBookmarked(anime.id, episodeNumber)) {
+      removeBookmark(anime.id);
     } else {
-      setBookmark(animeId, episodeNumber);
+      setBookmark(anime.id, episodeNumber);
     }
   };
 
-  if (localIsLoading && !currentEpisode) { // Show section loader only if no current episode data
+  if (localIsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-accent" />
-        <p className="ml-4 text-xl text-muted-foreground">Cargando...</p>
+        <p className="ml-4 text-xl text-muted-foreground">Cargando episodio...</p>
       </div>
     );
   }
+  
+  const effectiveAnimeId = anime?.id || animeId || "unknown-anime";
+  const effectiveAnimeTitle = anime?.title || "Anime Desconocido";
+  const effectiveEpisodeNumber = currentEpisode?.episodeNumber || episodeNumber || 0;
 
   if (error || !anime || !currentEpisode) {
-    const animeTitleFromError = anime?.title || 'Anime Desconocido';
-    const episodeNumberForTitle = currentEpisode?.episodeNumber || (episodeNumberStr ? parseInt(episodeNumberStr, 10) : 'desconocido');
-    const pageTitle = error ? 'Error al Cargar Episodio' : `Episodio ${episodeNumberForTitle} de ${animeTitleFromError} No Encontrado`;
-
+    const pageTitle = error ? 'Error al Cargar Episodio' : `Episodio ${effectiveEpisodeNumber} de ${effectiveAnimeTitle} No Encontrado`;
     return (
       <>
         <Helmet>
           <title>{pageTitle} - AniView</title>
         </Helmet>
-        <div className="container mx-auto px-4 py-8 text-center">
+        <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col items-center justify-center">
           <AlertTriangle className="mx-auto h-16 w-16 text-destructive mb-4" />
           <h1 className="mt-4 text-3xl font-bold text-destructive">{pageTitle}</h1>
           <p className="mt-3 text-lg text-muted-foreground">
-            {error || `No se pudo encontrar el episodio ${episodeNumberForTitle} de ${animeTitleFromError}. Puede que no exista o haya ocurrido un error.`}
+            {error || `No se pudo encontrar el episodio ${effectiveEpisodeNumber} de ${effectiveAnimeTitle}. Puede que no exista o haya ocurrido un error.`}
           </p>
           <div className="mt-8 space-x-4">
-            {anime && (
+            {anime && anime.id && (
               <Button asChild variant="outline">
                 <Link to={`/anime/${encodeURIComponent(anime.id)}`}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Volver a {anime.title}
+                </Link>
+              </Button>
+            )}
+             {!anime && animeId && ( // Fallback if anime object is not loaded but animeId exists
+              <Button asChild variant="outline">
+                <Link to={`/anime/${encodeURIComponent(animeId)}`}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Volver al anime
                 </Link>
               </Button>
             )}
@@ -201,7 +211,7 @@ export default function EpisodePlayerPage() {
                               <Link to={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center justify-between w-full truncate">
                                 <span className="truncate">
                                   Episodio {episode.episodeNumber}
-                                  {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
+                                  {episode.title && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
                                 </span>
                                 {isOtherBookmarked && <BookmarkCheck className="h-4 w-4 text-accent ml-2 flex-shrink-0" />}
                               </Link>
