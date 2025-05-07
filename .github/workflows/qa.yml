@@ -24,7 +24,8 @@ jobs:
         run: |
           # Asume que tus variables de entorno para la API son VITE_API_BASE_URL
           # Si tienes más variables, añádelas aquí
-          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
+          - name: Set API Environment Variable
+          run: echo "NEXT_PUBLIC_ANIME_API_ENDPOINT=${{ secrets.VITE_API_BASE_URL }}" >> .env
           # Ejemplo: Si tienes otra variable SECRET_KEY
           # echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
 
