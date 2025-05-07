@@ -1,7 +1,7 @@
 
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { GeistSans } from 'geist/font/sans';
-import { Toaster } from '@/components/ui/toaster'; // Already in index.tsx, can be removed if redundant
+// import { GeistSans } from 'geist/font/sans'; // Removed: Font will be handled by global CSS import
+import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
 import { Tv, Search, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,7 @@ export default function App() {
   };
 
   return (
-    <div className={`${GeistSans.variable} font-sans antialiased flex min-h-screen w-full flex-col bg-background text-foreground`}>
+    <div className={`font-sans antialiased flex min-h-screen w-full flex-col bg-background text-foreground`}>
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
         <Link to="/" className="flex items-center gap-2 text-lg font-semibold md:text-base">
           <Tv className="h-7 w-7 text-accent" />
