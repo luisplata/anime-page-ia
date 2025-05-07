@@ -6,16 +6,16 @@ import EpisodePlayerClient from '@/components/episode-player-client';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { Button } from '@/components/ui/button';
 import { Helmet } from 'react-helmet-async';
-import { AlertTriangle, ArrowLeft, ListVideo, Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ListVideo, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-// Removed: import { useLoading } from '@/contexts/loading-context';
+import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
   const { setBookmark, removeBookmark, isEpisodeBookmarked, isLoading: bookmarksLoading } = useBookmarks();
-  // Removed: const { showLoader, hideLoader } = useLoading();
+  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
@@ -38,17 +38,17 @@ export default function EpisodePlayerPage() {
     }
 
     const fetchEpisodeData = async () => {
-      // Removed: showLoader();
+      showLoader();
       setLocalIsLoading(true);
       setError(null);
-      setAnime(null); // Clear previous data
-      setCurrentEpisode(null); // Clear previous episode
+      setAnime(null);
+      setCurrentEpisode(null);
       try {
         const animeData = await getAnimeDetail(animeId);
-        if (!animeData || !animeData.id) { // Ensure animeData and its id exist
+        if (!animeData || !animeData.id) {
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
           setLocalIsLoading(false);
-          // Removed: hideLoader();
+          hideLoader();
           return;
         }
         setAnime(animeData);
@@ -64,12 +64,12 @@ export default function EpisodePlayerPage() {
         setError(err instanceof Error ? err.message : `Error al cargar la información del episodio.`);
       } finally {
         setLocalIsLoading(false);
-        // Removed: hideLoader();
+        hideLoader();
       }
     };
 
     fetchEpisodeData();
-  }, [animeId, episodeNumberStr, episodeNumber]); // Removed showLoader, hideLoader from deps
+  }, [animeId, episodeNumberStr, episodeNumber, showLoader, hideLoader]);
 
   const handleBookmarkToggle = () => {
     if (!animeId || isNaN(episodeNumber) || bookmarksLoading || !anime || !anime.id) return;
@@ -81,11 +81,10 @@ export default function EpisodePlayerPage() {
     }
   };
 
-  if (localIsLoading) {
+  if (localIsLoading) { // Global spinner is active
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-accent" />
-        <p className="ml-4 text-xl text-muted-foreground">Cargando episodio...</p>
+      <div className="min-h-screen">
+        {/* Minimal placeholder, global spinner is visible */}
       </div>
     );
   }
@@ -115,7 +114,7 @@ export default function EpisodePlayerPage() {
                 </Link>
               </Button>
             )}
-             {!anime && animeId && ( // Fallback if anime object is not loaded but animeId exists
+             {!anime && animeId && (
               <Button asChild variant="outline">
                 <Link to={`/anime/${encodeURIComponent(animeId)}`}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Volver al anime

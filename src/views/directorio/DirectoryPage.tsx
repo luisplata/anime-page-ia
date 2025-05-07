@@ -8,16 +8,16 @@ import {
 import { AnimeCard } from '@/components/anime-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Filter, Search, ListX, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, Search, ListX, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
 import type { PaginatedAnimeResponse } from '@/services/anime-api';
-// Removed: import { useLoading } from '@/contexts/loading-context';
+import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function DirectoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  // Removed: const { showLoader, hideLoader } = useLoading();
+  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const searchQueryFromUrl = queryParams.get('q') || "";
@@ -39,10 +39,10 @@ export default function DirectoryPage() {
 
   useEffect(() => {
     const fetchAnimes = async () => {
-      // Removed: showLoader();
+      showLoader();
       setLocalIsLoading(true);
       setError(null);
-      setAnimeData(null); // Clear previous data
+      setAnimeData(null);
       try {
         let response: PaginatedAnimeResponse;
         if (searchQueryFromUrl.trim()) {
@@ -61,11 +61,11 @@ export default function DirectoryPage() {
         setAnimeData(null);
       } finally {
         setLocalIsLoading(false);
-        // Removed: hideLoader();
+        hideLoader();
       }
     };
     fetchAnimes();
-  }, [searchQueryFromUrl, pageFromUrl]); // Removed showLoader, hideLoader dependencies
+  }, [searchQueryFromUrl, pageFromUrl, showLoader, hideLoader]);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,7 +73,7 @@ export default function DirectoryPage() {
     if (searchInput.trim()) {
       params.set('q', searchInput.trim());
     }
-    params.set('page', '1'); // Reset to page 1 on new search
+    params.set('page', '1');
     navigate(`/directorio?${params.toString()}`);
   };
 
@@ -136,10 +136,9 @@ export default function DirectoryPage() {
         </form>
         <Separator className="my-6" />
 
-        {localIsLoading ? (
-          <div className="flex justify-center items-center py-12 min-h-[300px]">
-            <Loader2 className="h-12 w-12 animate-spin text-accent" />
-            <p className="ml-4 text-lg text-muted-foreground">Cargando animes...</p>
+        {localIsLoading ? ( // Global spinner is active
+          <div className="py-12 min-h-[300px]">
+            {/* Minimal placeholder, global spinner is visible */}
           </div>
         ) : error ? (
           <div className="text-center py-12 text-destructive min-h-[300px]">{error}</div>
@@ -159,20 +158,19 @@ export default function DirectoryPage() {
 
                   if (link.url) {
                     try {
-                      // The URL might be absolute or relative, handle robustly
                       const urlObj = new URL(link.url);
                       const pageStr = urlObj.searchParams.get('page');
                       if (pageStr) targetPage = parseInt(pageStr, 10);
-                    } catch (e) { /* ignore if URL is malformed */ }
+                    } catch (e) { /* ignore */ }
                   }
                   
                   const isPrev = label === "&laquo; Previous";
                   const isNext = label === "Next &raquo;";
 
                   if (isPrev) {
-                    label = ""; // Use icon only
+                    label = "";
                     if (!animeData?.prevPageUrl) isDisabled = true;
-                    else if (animeData?.prevPageUrl) { // Ensure targetPage is correctly set from prevPageUrl
+                    else if (animeData?.prevPageUrl) {
                         try {
                             const urlObj = new URL(animeData.prevPageUrl);
                             const pageStr = urlObj.searchParams.get('page');
@@ -180,9 +178,9 @@ export default function DirectoryPage() {
                         } catch (e) { /* ignore */ }
                     }
                   } else if (isNext) {
-                    label = ""; // Use icon only
+                    label = "";
                     if (!animeData?.nextPageUrl) isDisabled = true;
-                    else if (animeData?.nextPageUrl) { // Ensure targetPage is correctly set from nextPageUrl
+                    else if (animeData?.nextPageUrl) {
                         try {
                             const urlObj = new URL(animeData.nextPageUrl);
                             const pageStr = urlObj.searchParams.get('page');
@@ -192,7 +190,6 @@ export default function DirectoryPage() {
                   } else if (label === "...") {
                      isDisabled = true;
                   }
-
 
                   return (
                     <Button

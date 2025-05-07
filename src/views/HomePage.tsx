@@ -4,8 +4,7 @@ import { getLatestEpisodes, getLatestAddedAnime, type NewEpisode, type AnimeList
 import { AnimeCard } from '@/components/anime-card';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
-import { Loader2 } from 'lucide-react';
-// Removed: import { useLoading } from '@/contexts/loading-context';
+import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function HomePage() {
   const [latestEpisodes, setLatestEpisodes] = useState<NewEpisode[]>([]);
@@ -14,11 +13,25 @@ export default function HomePage() {
   const [localLoadingAddedAnime, setLocalLoadingAddedAnime] = useState(true);
   const [errorEpisodes, setErrorEpisodes] = useState<string | null>(null);
   const [errorAddedAnime, setErrorAddedAnime] = useState<string | null>(null);
-  // Removed: const { showLoader, hideLoader } = useLoading();
+  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   useEffect(() => {
+    let activeLoaders = 0;
+
+    const incrementLoader = () => {
+      activeLoaders++;
+      showLoader();
+    };
+
+    const decrementLoader = () => {
+      activeLoaders--;
+      if (activeLoaders === 0) {
+        hideLoader();
+      }
+    };
+
     const fetchLatestEpisodes = async () => {
-      // Removed: showLoader(); for episodes
+      incrementLoader();
       setLocalLoadingEpisodes(true);
       setErrorEpisodes(null);
       try {
@@ -29,12 +42,12 @@ export default function HomePage() {
         setErrorEpisodes(err instanceof Error ? err.message : "Failed to load latest episodes.");
       } finally {
         setLocalLoadingEpisodes(false);
-        // Removed: hideLoader(); for episodes, if it was the only one
+        decrementLoader();
       }
     };
 
     const fetchLatestAddedAnime = async () => {
-      // Removed: showLoader(); for added anime
+      incrementLoader();
       setLocalLoadingAddedAnime(true);
       setErrorAddedAnime(null);
       try {
@@ -45,19 +58,31 @@ export default function HomePage() {
         setErrorAddedAnime(err instanceof Error ? err.message : "Failed to load latest added anime.");
       } finally {
         setLocalLoadingAddedAnime(false);
-        // Removed: hideLoader(); if it was the only/last one
+        decrementLoader();
       }
     };
 
     fetchLatestEpisodes();
     fetchLatestAddedAnime();
-  }, []); // Removed showLoader, hideLoader from dependencies
+
+    // Cleanup in case component unmounts while loaders are active
+    return () => {
+      if (activeLoaders > 0) {
+        // This ensures hideLoader is called for any pending operations if the component unmounts.
+        // For simplicity, just call hideLoader enough times or reset.
+        // A more robust solution might involve cancellation tokens if fetches are long.
+        for (let i = 0; i < activeLoaders; i++) {
+          hideLoader();
+        }
+      }
+    };
+  }, [showLoader, hideLoader]);
 
   const renderSection = <T extends AnimeListing | NewEpisode>(
     title: string,
     description: string,
     data: T[],
-    isLoading: boolean,
+    isLoading: boolean, // This is localLoadingEpisodes or localLoadingAddedAnime
     error: string | null,
     type: 'episode' | 'listing',
     emptyMessage: string,
@@ -72,10 +97,11 @@ export default function HomePage() {
           {description}
         </p>
       </header>
-      {isLoading ? (
-        <div className="flex justify-center items-center py-12 min-h-[200px]"> {/* Added min-h for better visual */}
-          <Loader2 className="h-12 w-12 animate-spin text-accent" />
-          <p className="ml-4 text-lg text-muted-foreground">Cargando {title.toLowerCase()}...</p>
+      {isLoading ? ( // If this section's data is loading (localLoading... is true)
+        // Global spinner is active, so this section can be minimal or show structure
+        <div className="min-h-[200px] flex items-center justify-center">
+          {/* The global LoadingSpinner covers the screen, so this area will be overlaid.
+              No need for specific content here unless it's to maintain layout space. */}
         </div>
       ) : error ? (
          <div className="text-center py-12 text-destructive min-h-[200px]">

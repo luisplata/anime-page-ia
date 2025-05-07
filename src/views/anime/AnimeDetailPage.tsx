@@ -6,16 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaySquare, ListVideo, AlertTriangle, Loader2, BookmarkCheck } from 'lucide-react';
+import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-// Removed: import { useLoading } from '@/contexts/loading-context';
+import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
   const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks();
-  // Removed: const { showLoader, hideLoader } = useLoading();
+  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [localIsLoading, setLocalIsLoading] = useState(true);
@@ -30,18 +30,15 @@ export default function AnimeDetailPage() {
     }
 
     const fetchAnimeDetails = async () => {
-      // Removed: showLoader();
+      showLoader();
       setLocalIsLoading(true);
       setError(null);
-      setAnime(null); // Clear previous data
+      setAnime(null);
       try {
         const data = await getAnimeDetail(animeId);
-        if (data && data.id) { // Ensure data and data.id exist
+        if (data && data.id) {
           setAnime(data);
-          // The bookmarksLoading check is already part of the hook,
-          // so getBookmarkForAnime will return current value or null if still loading.
-          // We update bookmarkedEpisodeNumber in a separate effect when anime or bookmarks data changes.
-        } else if (data && !data.id && data.title?.includes("Anime no encontrado")) { // Handle fallback from API service
+        } else if (data && !data.id && data.title?.includes("Anime no encontrado")) {
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
         } else {
            setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
@@ -51,30 +48,28 @@ export default function AnimeDetailPage() {
         setError(err instanceof Error ? err.message : "Error al cargar la información del anime.");
       } finally {
         setLocalIsLoading(false);
-        // Removed: hideLoader();
+        hideLoader();
       }
     };
     fetchAnimeDetails();
-  }, [animeId]); // Removed showLoader, hideLoader, bookmarksLoading, getBookmarkForAnime from deps
+  }, [animeId, showLoader, hideLoader]);
 
   useEffect(() => {
-    // Update bookmarked episode when anime data is loaded or bookmarks change
     if (anime && anime.id && !bookmarksLoading) {
         setBookmarkedEpisodeNumber(getBookmarkForAnime(anime.id));
     }
   }, [anime, bookmarksLoading, getBookmarkForAnime]);
 
 
-  if (localIsLoading) { // Show local loader while fetching
+  if (localIsLoading) { // Global spinner is active via showLoader()
     return (
-      <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col justify-center items-center">
-        <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
-        <p className="mt-4 text-lg text-muted-foreground">Cargando detalles del anime...</p>
+      <div className="container mx-auto px-4 py-8 min-h-screen">
+        {/* Minimal placeholder, global spinner is visible */}
       </div>
     );
   }
 
-  if (error || !anime || !anime.id) { // Check anime.id to ensure it's a valid anime object
+  if (error || !anime || !anime.id) {
     return (
       <>
         <Helmet>

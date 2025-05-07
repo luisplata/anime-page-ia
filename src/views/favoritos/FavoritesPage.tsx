@@ -5,9 +5,9 @@ import { useFavorites } from '@/hooks/use-favorites';
 import { getAnimeDetail, type AnimeDetail, type AnimeListing } from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Button } from '@/components/ui/button';
-import { Star, Loader2, Frown } from 'lucide-react';
+import { Star, Frown } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
-// Removed: import { useLoading } from '@/contexts/loading-context';
+import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
   return {
@@ -19,29 +19,35 @@ function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
 
 export default function FavoritesPage() {
   const { favoriteIds, isLoading: favoritesLoadingHook } = useFavorites();
-  // Removed: const { showLoader, hideLoader } = useLoading();
+  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const [favoriteAnimes, setFavoriteAnimes] = useState<AnimeListing[]>([]);
   const [localIsLoading, setLocalIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initial loading state based on favorites hook
     if (favoritesLoadingHook) {
+      showLoader(); // Show loader if favorites list itself is loading
       setLocalIsLoading(true);
       return;
+    } else if (localIsLoading && !favoriteIds.length) {
+      // If favorites were loading and now done, but no IDs, hide loader.
+      // This handles the initial favorites hook loading.
+      hideLoader();
     }
+
 
     if (favoriteIds.length === 0) {
       setFavoriteAnimes([]);
-      setLocalIsLoading(false);
+      setLocalIsLoading(false); // No animes to fetch details for
       return;
     }
 
     const fetchFavoriteAnimes = async () => {
-      setLocalIsLoading(true); // Set loading true when starting to fetch details
+      showLoader(); // Show loader before fetching details
+      setLocalIsLoading(true);
       setError(null);
-      setFavoriteAnimes([]); // Clear previous favorites before fetching new ones
+      setFavoriteAnimes([]);
       try {
         const animeDetailsPromises = favoriteIds.map(id => getAnimeDetail(id).catch(err => {
             console.error(`Failed to fetch details for favorite ID ${id}:`, err);
@@ -59,7 +65,7 @@ export default function FavoritesPage() {
                 successfullyFetchedAnimes.push(transformDetailToAnimeListing(animeDetail));
              } else {
                 console.warn(`Skipping favorite: Anime details not found or invalid for an ID. Detail:`, animeDetail);
-                fetchErrorOccurred = true; // Mark if any favorite was not properly fetched
+                fetchErrorOccurred = true;
              }
           } else if (result.status === 'rejected') {
             console.error("A promise for fetching favorite anime details was rejected:", result.reason);
@@ -77,11 +83,12 @@ export default function FavoritesPage() {
         setError("Ocurrió un error al cargar tus animes favoritos.");
       } finally {
         setLocalIsLoading(false);
+        hideLoader(); // Hide loader after fetching details
       }
     };
 
     fetchFavoriteAnimes();
-  }, [favoriteIds, favoritesLoadingHook]); // Removed showLoader, hideLoader from dependencies
+  }, [favoriteIds, favoritesLoadingHook, showLoader, hideLoader]);
 
   return (
     <>
@@ -97,12 +104,11 @@ export default function FavoritesPage() {
           </h1>
         </header>
 
-        {localIsLoading ? (
-          <div className="flex justify-center items-center py-12 min-h-[300px]">
-            <Loader2 className="h-12 w-12 animate-spin text-accent" />
-            <p className="ml-4 text-lg text-muted-foreground">Cargando tus favoritos...</p>
+        {localIsLoading ? ( // Global spinner is active
+          <div className="py-12 min-h-[300px]">
+            {/* Minimal placeholder, global spinner is visible */}
           </div>
-        ) : error && favoriteAnimes.length === 0 ? ( // Show general error only if no animes loaded
+        ) : error && favoriteAnimes.length === 0 ? (
           <div className="text-center py-12 min-h-[300px]">
             <Frown className="h-16 w-16 text-destructive mx-auto mb-4" />
             <p className="text-xl text-destructive">{error}</p>
@@ -112,7 +118,7 @@ export default function FavoritesPage() {
           </div>
         ) : favoriteAnimes.length > 0 ? (
           <>
-            {error && ( // Show partial error message if some animes loaded but others failed
+            {error && (
               <div className="mb-4 p-4 bg-destructive/10 border border-destructive text-destructive rounded-md">
                 <p>{error}</p>
               </div>
