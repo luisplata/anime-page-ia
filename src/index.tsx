@@ -10,23 +10,29 @@ import ClientUuidProvider from '@/components/client-uuid-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { HelmetProvider } from 'react-helmet-async';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <HelmetProvider>
-      <BrowserRouter>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <FavoritesProvider>
-            <ClientUuidProvider />
-            <App />
-            <Toaster />
-          </FavoritesProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </HelmetProvider>
-  </React.StrictMode>
-);
+const rootElement = document.getElementById('root');
+
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <HelmetProvider>
+        <BrowserRouter>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <FavoritesProvider>
+              <ClientUuidProvider />
+              <App />
+              <Toaster />
+            </FavoritesProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </HelmetProvider>
+    </React.StrictMode>
+  );
+} else {
+  console.error("Failed to find the root element. The application cannot be mounted.");
+}
