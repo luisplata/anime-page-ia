@@ -1,5 +1,4 @@
-
-'use client'; // Still useful for components within, though not strictly needed for page file itself
+'use client'; 
 
 import { useState, useEffect } from 'react';
 import { useFavorites } from '@/hooks/use-favorites';
@@ -47,14 +46,21 @@ export default function FavoritesPage() {
         
         const successfullyFetchedAnimes: AnimeListing[] = [];
         results.forEach(result => {
-          if (result.status === 'fulfilled' && result.value && !result.value.id.startsWith('error-detail-')) {
-            if (!result.value.title.startsWith('Anime no encontrado')) {
-                successfullyFetchedAnimes.push(transformDetailToAnimeListing(result.value));
+          if (result.status === 'fulfilled' && result.value) {
+            // Check if the fetched anime detail is not an error structure
+            if (!result.value.id.startsWith('error-detail-')) {
+              // This is a truly successful fetch of a valid anime
+              successfullyFetchedAnimes.push(transformDetailToAnimeListing(result.value));
             } else {
-                console.warn(`Anime with ID ${result.value.id} was not found or resulted in an error, skipping from favorites.`);
+              // This means result.value.id starts with 'error-detail-',
+              // so it's the structured error object from getAnimeDetail.
+              console.warn(`Skipping favorite: Anime not found or error for an ID in favorites list. Details: ${result.value.title} (ID: ${result.value.id})`);
             }
           } else if (result.status === 'rejected') {
-            console.error("Failed to fetch one of the favorite animes:", result.reason);
+            console.error("Failed to fetch details for a favorite anime (promise rejected):", result.reason);
+          } else if (result.status === 'fulfilled' && !result.value) {
+            // This case should ideally not happen if getAnimeDetail always returns an object or throws.
+             console.error("Unexpected: Fulfilled promise for favorite anime details but result.value is falsy.");
           }
         });
         setFavoriteAnimes(successfullyFetchedAnimes);

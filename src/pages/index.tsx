@@ -78,8 +78,21 @@ export default function HomePage({ latestEpisodes, latestAddedAnime }: HomePageP
 }
 
 export async function getStaticProps() {
-  const latestEpisodes = await getLatestEpisodes();
-  const latestAddedAnime = await getLatestAddedAnime();
+  let latestEpisodes: NewEpisode[] = [];
+  let latestAddedAnime: AnimeListing[] = [];
+
+  try {
+ latestEpisodes = await getLatestEpisodes();
+  } catch (error) {
+    console.error("Error fetching latest episodes for homepage:", error);
+  }
+
+  try {
+ latestAddedAnime = await getLatestAddedAnime();
+  } catch (error) {
+    console.error("Error fetching latest added anime for homepage:", error);
+  }
+
   return {
     props: {
       latestEpisodes,

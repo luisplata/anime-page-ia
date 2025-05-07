@@ -165,22 +165,6 @@ export interface NewEpisode {
 // --- Helper Functions ---
 
 /**
- * Generates a UUID.
- * In Node.js environments, crypto.randomUUID is available.
- * For browsers, it's also widely supported.
- */
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback for older environments (less robust but functional)
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-/**
  * Fetches data from the API with common headers and error handling.
  * @param endpoint The API endpoint path (e.g., '/api/animes').
  * @param options Additional fetch options.
@@ -192,34 +176,37 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
     throw new Error("API base URL is not configured. Please set NEXT_PUBLIC_ANIME_API_ENDPOINT.");
   }
 
-  let clientUUID: string | null = null;
-  if (typeof window !== 'undefined') { // Guard for browser-specific code
-    clientUUID = localStorage.getItem('client-uuid'); // Primary source
-    if (!clientUUID && typeof document !== 'undefined') { // Fallback to cookie if not in localStorage
-      const cookieString = document.cookie;
-      const cookiesArray = cookieString.split('; ');
-      const uuidCookie = cookiesArray.find(row => row.startsWith('client-uuid='));
-      if (uuidCookie) {
-        clientUUID = uuidCookie.split('=')[1];
-      }
-    }
-  }
-
   const url = `${API_BASE_URL}${endpoint}`;
-  const defaultHeaders: HeadersInit = {
+  const headersInit: HeadersInit = {
     'Content-Type': 'application/json',
+    ...options.headers,
   };
 
-  if (clientUUID) { // Only add header if UUID was found (i.e., on client and UUID exists)
-    defaultHeaders['X-Client-UUID'] = clientUUID;
+  // Client-UUID logic: Only attempt to add if on the client-side
+  if (typeof window !== 'undefined') {
+    let clientUUID: string | null = null;
+    try {
+      clientUUID = localStorage.getItem('client-uuid');
+      if (!clientUUID && typeof document !== 'undefined' && document.cookie) {
+        const cookieString = document.cookie;
+        const cookiesArray = cookieString.split('; ');
+        const uuidCookie = cookiesArray.find(row => row.trim().startsWith('client-uuid='));
+        if (uuidCookie) {
+          clientUUID = uuidCookie.split('=')[1];
+        }
+      }
+    } catch (e) {
+        console.warn("Could not access localStorage or cookies for client UUID.", e);
+    }
+    
+    if (clientUUID) {
+      headersInit['X-Client-UUID'] = clientUUID;
+    }
   }
 
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
+    headers: headersInit,
   });
 
   if (!response.ok) {
@@ -231,7 +218,6 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
             const parsedError = JSON.parse(errorBody);
             errorMessage = parsedError.message || parsedError.error || errorBody;
         } catch (e) {
-            // If errorBody is not JSON (e.g., HTML error page from server), use a snippet
             errorMessage = errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody;
         }
     }
@@ -239,11 +225,17 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
   }
 
   try {
-    return await response.json() as Promise<T>;
-  } catch (e) {
-    const responseText = await response.text(); // Get text response if JSON parsing fails
-    console.error(`API Error (${response.status}) for ${url}: Failed to parse JSON. Response text (first 500 chars): ${responseText.substring(0, 500)}`);
-    throw new Error(`API request to ${url} (status ${response.status}) succeeded but failed to parse JSON response.`);
+    const textResponse = await response.text();
+    if (!textResponse && response.status !== 204) { 
+        throw new Error(`API request to ${url} (status ${response.status}) succeeded but returned an empty response body.`);
+    }
+    if (response.status === 204) { 
+        return null as T; 
+    }
+    return JSON.parse(textResponse) as T;
+  } catch (e: any) {
+    console.error(`API Error for ${url} (status ${response.status}): Failed to parse JSON response. Error: ${e.message}.`);
+    throw new Error(`API request to ${url} (status ${response.status}) succeeded but failed to process the response: ${e.message}`);
   }
 }
 
@@ -413,3 +405,4 @@ export async function getEpisodeDetails(animeSlug: string, episodeNumber: number
     return null;
   }
 }
+    
