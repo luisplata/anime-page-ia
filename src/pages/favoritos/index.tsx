@@ -14,15 +14,15 @@ function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
   return {
     id: detail.id,
     title: detail.title,
-    thumbnailUrl: detail.coverUrl, // Use coverUrl as thumbnailUrl for consistency
+    thumbnailUrl: detail.coverUrl, 
   };
 }
 
 export default function FavoritesPage() {
   const { favoriteIds, isLoading: favoritesLoadingHook } = useFavorites();
-  const [favoriteAnimes, setFavoriteAnimes] = useState<AnimeListing[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [favoriteAnimes, setFavoriteAnimes = useState<AnimeListing[]>([]);
+  const [isLoading, setIsLoading = useState(true);
+  const [error, setError = useState<string | null>(null);
 
   useEffect(() => {
     if (favoritesLoadingHook) {
@@ -40,27 +40,24 @@ export default function FavoritesPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const results = await Promise.allSettled(
-          favoriteIds.map(id => getAnimeDetail(id))
-        );
+        // Fetch all details
+        const animeDetailsPromises = favoriteIds.map(id => getAnimeDetail(id));
+        const results = await Promise.allSettled(animeDetailsPromises);
         
         const successfullyFetchedAnimes: AnimeListing[] = [];
         results.forEach(result => {
           if (result.status === 'fulfilled' && result.value) {
-            // Check if the fetched anime detail is not an error structure
-            if (!result.value.id.startsWith('error-detail-')) {
-              // This is a truly successful fetch of a valid anime
-              successfullyFetchedAnimes.push(transformDetailToAnimeListing(result.value));
-            } else {
-              // This means result.value.id starts with 'error-detail-',
-              // so it's the structured error object from getAnimeDetail.
-              console.warn(`Skipping favorite: Anime not found or error for an ID in favorites list. Details: ${result.value.title} (ID: ${result.value.id})`);
-            }
+            // result.value is AnimeDetail | null
+            // Ensure it's a valid AnimeDetail object (not null)
+            const animeDetail = result.value;
+             if (animeDetail) { // Check if animeDetail is not null
+                successfullyFetchedAnimes.push(transformDetailToAnimeListing(animeDetail));
+             } else {
+                // Anime detail was null, means it couldn't be fetched or parsed correctly
+                console.warn(`Skipping favorite: Anime details not found or error for an ID in favorites list.`);
+             }
           } else if (result.status === 'rejected') {
             console.error("Failed to fetch details for a favorite anime (promise rejected):", result.reason);
-          } else if (result.status === 'fulfilled' && !result.value) {
-            // This case should ideally not happen if getAnimeDetail always returns an object or throws.
-             console.error("Unexpected: Fulfilled promise for favorite anime details but result.value is falsy.");
           }
         });
         setFavoriteAnimes(successfullyFetchedAnimes);

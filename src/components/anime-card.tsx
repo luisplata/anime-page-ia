@@ -23,7 +23,7 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
   const isCurrentlyFavorite = isFavorite(animeIdForFav);
 
   const handleFavoriteToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault(); // Prevent link navigation if button is inside a link
+    e.preventDefault(); 
     e.stopPropagation();
     if (isCurrentlyFavorite) {
       removeFavorite(animeIdForFav);
@@ -32,7 +32,8 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
     }
   };
   
-  const encodedAnimeId = encodeURIComponent(isEpisode(anime) ? anime.animeId : anime.id);
+  const idForLinksAndSeed = isEpisode(anime) ? anime.animeId : anime.id;
+  const encodedAnimeId = encodeURIComponent(idForLinksAndSeed);
   const href = isEpisode(anime) ? `/ver/${encodedAnimeId}/${anime.episodeNumber}` : `/anime/${encodedAnimeId}`;
   
   let title: string;
@@ -42,10 +43,11 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
     title = anime.title;
   }
   
-  const idForSeed = isEpisode(anime) ? anime.animeId : anime.id;
-  const thumbnailUrl = anime.thumbnailUrl && !anime.thumbnailUrl.includes('https://example.com/missing.jpg') 
-    ? anime.thumbnailUrl 
-    : `https://picsum.photos/seed/${idForSeed}/300/300`;
+  // Service layer should provide a valid thumbnailUrl or a picsum placeholder.
+  // This is an additional safety net in the component.
+  const finalThumbnailUrl = anime.thumbnailUrl && anime.thumbnailUrl.trim() !== ''
+    ? anime.thumbnailUrl
+    : `https://picsum.photos/seed/${idForLinksAndSeed || 'default'}/300/300`;
 
   const imageAlt = isEpisode(anime) ? `Thumbnail for ${anime.animeTitle} Episode ${anime.episodeNumber}` : `Thumbnail for ${anime.title}`;
   const dataAiHint = isEpisode(anime) ? "anime episode" : "anime cover";
@@ -66,7 +68,7 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
         <CardHeader className="p-0">
           <div className="aspect-square relative">
             <Image
-              src={thumbnailUrl}
+              src={finalThumbnailUrl}
               alt={imageAlt}
               fill
               sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) 25vw, 20vw"

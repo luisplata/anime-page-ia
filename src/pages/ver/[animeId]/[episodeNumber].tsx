@@ -11,9 +11,7 @@ import { AlertTriangle, ArrowLeft, ListVideo } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 
-// Define a type for the list of anime items in getStaticPaths
 interface AnimeListItem {
   id: string;
 }
@@ -28,9 +26,6 @@ export default function EpisodePlayerPage({ anime, currentEpisode, error }: Epis
   const router = useRouter();
 
   if (router.isFallback) {
-    // This should ideally not be reached with fallback: false if paths are not pre-rendered
-    // and not found via getStaticProps, resulting in a 404.
-    // However, keeping it for robustness or if fallback behavior changes.
     return (
         <div className="flex items-center justify-center min-h-screen">
             <p className="text-xl text-muted-foreground">Cargando...</p>
@@ -40,7 +35,6 @@ export default function EpisodePlayerPage({ anime, currentEpisode, error }: Epis
 
   if (error || !anime || !currentEpisode) {
     const animeTitleFromError = anime?.title || 'Anime Desconocido';
-    // Attempt to get episode number from query if currentEpisode is null
     const episodeNumberFromQuery = router.query.episodeNumber as string;
     const episodeNumberForTitle = currentEpisode?.episodeNumber || (episodeNumberFromQuery ? parseInt(episodeNumberFromQuery, 10) : 'desconocido');
     
@@ -58,7 +52,7 @@ export default function EpisodePlayerPage({ anime, currentEpisode, error }: Epis
             {error || `No se pudo encontrar el episodio ${episodeNumberForTitle} de ${animeTitleFromError}. Puede que no exista o haya ocurrido un error.`}
           </p>
           <div className="mt-8 space-x-4">
-            {anime && (
+            {anime && ( // Only show this button if anime data (even partial for title) is available
               <Button asChild variant="outline">
                 <Link href={`/anime/${encodeURIComponent(anime.id)}`}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Volver a {anime.title}
@@ -156,29 +150,12 @@ export default function EpisodePlayerPage({ anime, currentEpisode, error }: Epis
 
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  // Fetch all anime IDs. This assumes getAnimeList returns a list of anime objects with 'id'.
-  // If you have a different way to get all anime IDs, replace getAnimeList() with that function.
-  // TODO: Replace this placeholder with your actual function to get all anime IDs
-  const animeList: AnimeListItem[] = []; // Example: await getAllAnimeIds(); 
-  const paths = [];
-
-  // For each anime, fetch its details to get the episodes and generate paths
-  for (const anime of animeList) {
-    const animeDetail = await getAnimeDetail(anime.id);
-    if (animeDetail && animeDetail.episodes && !animeDetail.id.startsWith('error-detail-')) {
-      for (const episode of animeDetail.episodes) { // Assuming episodes are directly in animeDetail
-        paths.push({
-          params: {
-            animeId: anime.id,
-            episodeNumber: episode.episodeNumber.toString(),
-          },
-        });
-      }
-    }
-  }
+  // For static export with fallback: 'blocking', it's often best to provide no initial paths
+  // or only a very small subset of very popular paths if known at build time.
+  // Since the API data can change, an empty paths array allows on-demand generation.
   return {
-    paths,
-    fallback: false, // Requests for paths not generated at build time will result in a 404.
+    paths: [],
+    fallback: 'blocking', 
   };
 };
 
@@ -187,26 +164,25 @@ export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (con
   const episodeNumberStr = context.params?.episodeNumber as string;
 
   if (!animeId || !episodeNumberStr) {
-    return { props: { anime: null, currentEpisode: null, error: "ID de anime o número de episodio no proporcionado." } };
+    return { props: { anime: null, currentEpisode: null, error: "ID de anime o número de episodio no proporcionado." }, notFound: true };
   }
 
   const episodeNumber = parseInt(episodeNumberStr, 10);
   if (isNaN(episodeNumber)) {
-    return { props: { anime: null, currentEpisode: null, error: "Número de episodio inválido." } };
+    return { props: { anime: null, currentEpisode: null, error: "Número de episodio inválido." }, notFound: true };
   }
 
   try {
     const anime = await getAnimeDetail(animeId);
 
-    if (!anime || anime.id.startsWith('error-detail-')) { 
-      // This means getAnimeDetail returned its error structure
-      return { props: { anime: null, currentEpisode: null, error: anime?.title || `No se encontró el anime con ID: ${animeId}` } };
+    if (!anime) { 
+      return { props: { anime: null, currentEpisode: null, error: `No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.` }, notFound: true };
     }
 
     const currentEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber) || null;
 
     if (!currentEpisode) {
-      return { props: { anime, currentEpisode: null, error: `Episodio ${episodeNumber} no encontrado para ${anime.title}.` } };
+      return { props: { anime, currentEpisode: null, error: `Episodio ${episodeNumber} no encontrado para ${anime.title}.` }, notFound: true };
     }
 
     return {
@@ -214,12 +190,10 @@ export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (con
         anime,
         currentEpisode,
       },
-      // Removed revalidate for static export compatibility
     };
-  } catch (e) {
+  } catch (e) { // This catch might be redundant if getAnimeDetail handles its own errors and returns null
     const error = e instanceof Error ? e.message : "Error desconocido";
     console.error(`Failed to fetch episode details in getStaticProps for ${animeId}/${episodeNumber}:`, error);
-    return { props: { anime: null, currentEpisode: null, error: `Error al cargar la información del episodio: ${error}` } };
+    return { props: { anime: null, currentEpisode: null, error: `Error al cargar la información del episodio: ${error}` }, notFound: true };
   }
 };
-

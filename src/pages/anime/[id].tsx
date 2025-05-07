@@ -12,8 +12,8 @@ import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import type { GetStaticProps, GetStaticPaths } from 'next';
 
 interface AnimeDetailPageProps {
-  anime: AnimeDetailType | null; // Can be null if fetch fails
-  error?: string;
+  anime: AnimeDetailType | null;
+  error?: string; // Keep error for explicit error messages
 }
 
 export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) {
@@ -120,7 +120,7 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [], 
-    fallback: false, 
+    fallback: 'blocking', 
   };
 };
 
@@ -128,21 +128,21 @@ export const getStaticProps: GetStaticProps<AnimeDetailPageProps> = async (conte
   const id = context.params?.id as string; 
 
   if (!id) {
-    return { props: { anime: null, error: "ID de anime no proporcionado." } };
+    return { props: { anime: null, error: "ID de anime no proporcionado." }, notFound: true };
   }
 
   try {
     const anime = await getAnimeDetail(id); 
-     if (!anime || anime.id.startsWith('error-detail-')) { 
-      return { props: { anime: null, error: `No se encontró el anime con ID: ${id}` } };
+     if (!anime) { 
+      return { props: { anime: null, error: `No se encontró el anime con ID: ${id} o hubo un error al procesarlo.` }, notFound: true };
     }
     return {
       props: {
         anime,
       },
     };
-  } catch (error) {
-    console.error("Failed to fetch anime details in getStaticProps:", error);
-    return { props: { anime: null, error: "Error al cargar la información del anime." } };
+  } catch (error) { // This catch might be redundant if getAnimeDetail handles its own errors and returns null
+    console.error("Error in getStaticProps for anime detail page:", error);
+    return { props: { anime: null, error: "Error al cargar la información del anime." }, notFound: true };
   }
 };

@@ -42,10 +42,7 @@ interface ApiEpisodeListItem {
   anime: { // Nested anime object
     id: number; // Anime ID
     slug: string;
-    // Assuming 'name' can be string[] as per previous error, or string.
-    // The provided Postman for /api/episodes had 'title' as string for anime.
-    // Let's assume API is consistent with anime having 'title' (string) and 'slug' (string)
-    title: string; // Preferring 'title' as string based on other endpoints. If it's 'name: string[]', adjust mapping.
+    title: string; 
     image: string; // Thumbnail for anime
   };
   sources: ApiEpisodeSource[];
@@ -54,7 +51,6 @@ interface ApiEpisodesResponse {
   data: ApiEpisodeListItem[];
   current_page?: number;
   last_page?: number;
-  // ... other pagination fields if present
 }
 
 
@@ -72,13 +68,11 @@ interface ApiAnimesDirectoryResponse { // For /api/animes
   data: ApiAnimeListItem[];
   current_page?: number;
   last_page?: number;
-  // ... other pagination fields
 }
-interface ApiAnimesSearchResponse { // For /api/animes/search
+interface ApiAnimesSearchResponse { // For /api/animes/search -> data object
   data: ApiAnimeListItem[];
   current_page?: number;
   last_page?: number;
-  // ... other pagination fields
 }
 
 
@@ -137,7 +131,6 @@ export interface NewEpisode { // Used for latest episodes feed ("Capítulos del 
   animeTitle: string;
   episodeNumber: number;
   thumbnailUrl: string; // thumbnail of the anime (from ep.anime.image)
-  // title?: string; // title of the episode itself - AnimeCard handles this as "Anime Title - Episode X"
 }
 
 
@@ -155,7 +148,7 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
       headers['X-Client-UUID'] = clientUUID;
     }
   }
-
+  
   const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
@@ -163,7 +156,6 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
     try {
       errorBody = await response.json();
     } catch (e) {
-      // If response is not JSON, try to get text
       try {
         errorBody = await response.text();
       } catch (textError) {
@@ -171,15 +163,37 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
       }
     }
     console.error(`API Error (${response.status}) for ${url}:`, errorBody);
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    throw new Error(`API request failed: ${response.status} ${response.statusText} - ${JSON.stringify(errorBody)}`);
   }
-  // Handle cases where response might be empty but OK (e.g., 204 No Content)
+  
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.indexOf("application/json") !== -1) {
-    return response.json();
+    const text = await response.text();
+    if (text === "") {
+      // For list-like responses, an empty array is a safe default
+      // For detail-like responses, null might be better, or throw error.
+      // Given current usage, we assume T might have a 'data' field.
+      if (endpoint.includes('/api/anime/')) { // Detail endpoint
+          // Throw an error or return null, as {data:[]} isn't valid for AnimeDetailResponse
+          console.warn(`Received empty JSON response for detail endpoint ${url}. Returning null-like structure.`);
+          return null as T; // This will need careful handling in calling functions
+      }
+      return { data: [] } as T; // Default for list endpoints
+    }
+    try {
+        return JSON.parse(text) as T;
+    } catch (e) {
+        console.error(`Failed to parse JSON for ${url}:`, e, "\nResponse text:", text);
+        throw new Error(`Failed to parse JSON response from API for ${url}`);
+    }
   }
-  // @ts-ignore If not JSON, but OK, return as is or handle as needed
-  return {} as T; // Or throw an error if JSON is always expected
+  // If content type is not JSON, but response was OK. This is unusual.
+  console.warn(`Received non-JSON 200 OK response for ${url}. Content-Type: ${contentType}`);
+  // For detail endpoint, null might be better.
+  if (endpoint.includes('/api/anime/')) {
+      return null as T;
+  }
+  return { data: [] } as T; // Default for list endpoints
 }
 
 
@@ -187,27 +201,34 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
 
 export async function getLatestEpisodes(): Promise<NewEpisode[]> {
   try {
-    // Postman collection for /api/episodes returns a paginated response with `data` field.
-    const response = await fetchFromApi<ApiEpisodesResponse>('/api/episodes?sort=latest&per_page=20'); // Example: Fetch 20 latest
-    if (!response || !response.data) {
-        console.warn('Received empty or invalid data from /api/episodes');
+    const response = await fetchFromApi<ApiEpisodesResponse>('/api/episodes?sort=latest&per_page=20');
+    if (!response || !Array.isArray(response.data)) {
+        console.warn('Received empty or invalid data array from /api/episodes. Response:', response);
         return [];
     }
-    return response.data.map((ep): NewEpisode => {
-      // Assuming ep.anime.name was a string array causing previous issues.
-      // If ep.anime.title is now a string (more consistent), use it directly.
-      // Let's use ep.anime.title as string for now, based on consistency with other anime objects.
-      // If it's truly `name: string[]`, then `ep.anime.name.join(' ')` is correct.
-      // Given the provided postman for /api/episodes, it has `anime.title` (string).
-      const animeTitle = ep.anime.title;
-
-      return {
-        animeId: ep.anime.slug,
-        animeTitle: animeTitle,
-        episodeNumber: ep.number,
-        thumbnailUrl: ep.anime.image,
-      };
-    });
+    return response.data
+      .map((ep): NewEpisode | null => {
+        if (
+          !ep.anime ||
+          typeof ep.anime.slug !== 'string' ||
+          typeof ep.anime.title !== 'string' ||
+          typeof ep.anime.image !== 'string' || // Presence checked, content below
+          typeof ep.number !== 'number'
+        ) {
+          console.warn('Skipping episode due to incomplete/invalid anime data from API:', ep);
+          return null;
+        }
+        const img = ep.anime.image;
+        const placeholder = `https://picsum.photos/seed/ep-${ep.anime.slug || ep.anime.id || 'unknown'}-${ep.number}/300/300`;
+        
+        return {
+          animeId: ep.anime.slug,
+          animeTitle: ep.anime.title,
+          episodeNumber: ep.number,
+          thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+        };
+      })
+      .filter((ep): ep is NewEpisode => ep !== null);
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
     return [];
@@ -216,17 +237,31 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
 
 export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
   try {
-    // Assuming /api/animes by default returns latest, or add query param if available e.g. ?sort_by=created_at&order=desc
-    const response = await fetchFromApi<ApiAnimesDirectoryResponse>('/api/animes?per_page=10'); // Example: Fetch 10 latest added
-     if (!response || !response.data) {
-        console.warn('Received empty or invalid data from /api/animes for latest added');
+    const response = await fetchFromApi<ApiAnimesDirectoryResponse>('/api/animes?sort_by=created_at&order=desc&per_page=10');
+     if (!response || !Array.isArray(response.data)) {
+        console.warn('Received empty or invalid data array from /api/animes for latest added. Response:', response);
         return [];
     }
-    return response.data.map((anime): AnimeListing => ({
-      id: anime.slug,
-      title: anime.title,
-      thumbnailUrl: anime.image,
-    }));
+    return response.data
+      .map((anime): AnimeListing | null => {
+        if (
+          typeof anime.slug !== 'string' ||
+          typeof anime.title !== 'string' ||
+          typeof anime.image !== 'string' // Presence checked, content below
+        ) {
+          console.warn('Skipping anime listing due to incomplete/invalid data from API:', anime);
+          return null;
+        }
+        const img = anime.image;
+        const placeholder = `https://picsum.photos/seed/la-${anime.slug || anime.id || 'unknown'}/300/300`;
+
+        return {
+          id: anime.slug,
+          title: anime.title,
+          thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+        };
+      })
+      .filter((anime): anime is AnimeListing => anime !== null);
   } catch (error) {
     console.error("Failed to fetch latest added anime:", error);
     return [];
@@ -235,53 +270,70 @@ export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
 
 export async function getAnimeDirectory(): Promise<AnimeListing[]> {
   try {
-    // Fetch all pages if pagination exists, or just the first page.
-    // For simplicity, fetching first page. Add pagination handling if needed.
-    const response = await fetchFromApi<ApiAnimesDirectoryResponse>('/api/animes?per_page=100'); // Fetch a large number for "all"
-    if (!response || !response.data) {
-        console.warn('Received empty or invalid data from /api/animes for directory');
+    // Fetching more items for a better directory experience, up to 100.
+    // The API might have its own upper limit per page.
+    const response = await fetchFromApi<ApiAnimesDirectoryResponse>('/api/animes?per_page=100'); 
+    if (!response || !Array.isArray(response.data)) {
+        console.warn('Received empty or invalid data array from /api/animes for directory. Response:', response);
         return [];
     }
-    return response.data.map((anime): AnimeListing => ({
-      id: anime.slug,
-      title: anime.title,
-      thumbnailUrl: anime.image,
-    }));
+    return response.data
+      .map((anime): AnimeListing | null => {
+        if (
+          typeof anime.slug !== 'string' ||
+          typeof anime.title !== 'string' ||
+          typeof anime.image !== 'string' // Presence checked, content below
+        ) {
+          console.warn('Skipping anime listing (directory) due to incomplete/invalid data from API:', anime);
+          return null;
+        }
+        const img = anime.image;
+        const placeholder = `https://picsum.photos/seed/dir-${anime.slug || anime.id || 'unknown'}/300/300`;
+        return {
+          id: anime.slug,
+          title: anime.title,
+          thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+        };
+      })
+      .filter((anime): anime is AnimeListing => anime !== null);
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
     return [];
   }
 }
 
-export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail> {
+export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | null> {
   try {
     const anime = await fetchFromApi<ApiAnimeDetailResponse>(`/api/anime/${animeSlug}`);
+    if (!anime || typeof anime.slug !== 'string' || typeof anime.title !== 'string') {
+      console.error(`Fetched anime detail for slug '${animeSlug}' is invalid or missing essential fields. Response:`, anime);
+      return null;
+    }
+
+    const title = anime.title || `Anime Desconocido ${anime.id}`;
+    const coverImg = anime.image;
+    const defaultCover = `https://picsum.photos/seed/detail-${anime.slug || animeSlug}/400/600`;
+    
     return {
       id: anime.slug,
-      title: anime.title,
+      title: title,
       description: anime.description?.startsWith('/') 
-        ? `Información sobre ${anime.title}.` // Placeholder if description is a path
+        ? `Información sobre ${title}.` 
         : (anime.description || "No hay descripción disponible."),
-      coverUrl: anime.image, // API's `image` field is the cover for detail view
-      episodes: (anime.episodes || []).map((ep): Episode => ({
+      coverUrl: (coverImg && coverImg.trim() !== '' && !coverImg.includes('https://example.com/missing.jpg')) ? coverImg : defaultCover,
+      episodes: (Array.isArray(anime.episodes) ? anime.episodes : []).map((ep): Episode => ({
         episodeNumber: ep.number,
-        streamingSources: ep.sources.map(source => ({
-          name: source.name,
-          url: source.url,
+        streamingSources: (Array.isArray(ep.sources) ? ep.sources : []).map(source => ({
+          name: source.name || 'Fuente Desconocida',
+          url: source.url || 'https://example.com/placeholder-stream',
           quality: source.quality,
-        })),
+        })).filter(s => s.url && s.url !== 'https://example.com/placeholder-stream'), // Filter out invalid sources
         title: ep.title || `Episodio ${ep.number}`,
-      })).sort((a, b) => a.episodeNumber - b.episodeNumber), // Ensure episodes are sorted
+      })).sort((a, b) => a.episodeNumber - b.episodeNumber),
     };
   } catch (error) {
     console.error(`Failed to fetch details for anime ${animeSlug}:`, error);
-    return { // Return a structured error object for the page to handle
-      id: `error-detail-${animeSlug}`,
-      title: `Anime no encontrado: ${animeSlug}`,
-      description: "No se pudo cargar la información de este anime. Puede que el enlace sea incorrecto, el anime no exista, o haya un problema con la API.",
-      coverUrl: 'https://picsum.photos/seed/error-detail-not-found/400/600',
-      episodes: [],
-    };
+    return null;
   }
 }
 
@@ -289,15 +341,29 @@ export async function searchAnimes(query: string): Promise<AnimeListing[]> {
   if (!query.trim()) return [];
   try {
     const response = await fetchFromApi<ApiAnimesSearchResponse>(`/api/animes/search?q=${encodeURIComponent(query)}`);
-     if (!response || !response.data) {
-        console.warn(`Received empty or invalid data from /api/animes/search for query: ${query}`);
+     if (!response || !Array.isArray(response.data)) {
+        console.warn(`Received empty or invalid data array from /api/animes/search for query: ${query}. Response:`, response);
         return [];
     }
-    return response.data.map((anime): AnimeListing => ({
-      id: anime.slug,
-      title: anime.title,
-      thumbnailUrl: anime.image,
-    }));
+    return response.data
+      .map((anime): AnimeListing | null => {
+         if (
+          typeof anime.slug !== 'string' ||
+          typeof anime.title !== 'string' ||
+          typeof anime.image !== 'string' // Presence checked, content below
+        ) {
+          console.warn('Skipping anime listing (search) due to incomplete/invalid data from API:', anime);
+          return null;
+        }
+        const img = anime.image;
+        const placeholder = `https://picsum.photos/seed/search-${anime.slug || anime.id || 'unknown'}/300/300`;
+        return {
+          id: anime.slug,
+          title: anime.title,
+          thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+        };
+      })
+      .filter((anime): anime is AnimeListing => anime !== null);
   } catch (error) {
     console.error(`Failed to search for anime with query "${query}":`, error);
     return [];
