@@ -9,25 +9,29 @@ import { Separator } from '@/components/ui/separator';
 import { PlaySquare, ListVideo, AlertTriangle, Loader2, BookmarkCheck } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
-import { useBookmarks } from '@/hooks/use-bookmarks'; // Import useBookmarks
+import { useBookmarks } from '@/hooks/use-bookmarks';
+import { useLoading } from '@/contexts/loading-context'; // Import useLoading
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
-  const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks(); // Use bookmarks hook
+  const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks();
+  const { showLoader, hideLoader } = useLoading(); // Use global loading context
+
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [localIsLoading, setLocalIsLoading] = useState(true); // Renamed to avoid conflict
   const [error, setError] = useState<string | null>(null);
   const [bookmarkedEpisodeNumber, setBookmarkedEpisodeNumber] = useState<number | null>(null);
 
   useEffect(() => {
     if (!animeId) {
       setError("ID de anime no proporcionado.");
-      setIsLoading(false);
+      setLocalIsLoading(false);
       return;
     }
 
     const fetchAnimeDetails = async () => {
-      setIsLoading(true);
+      showLoader();
+      setLocalIsLoading(true);
       setError(null);
       try {
         const data = await getAnimeDetail(animeId);
@@ -43,11 +47,12 @@ export default function AnimeDetailPage() {
         console.error("Error fetching anime details:", err);
         setError("Error al cargar la información del anime.");
       } finally {
-        setIsLoading(false);
+        setLocalIsLoading(false);
+        hideLoader();
       }
     };
     fetchAnimeDetails();
-  }, [animeId, bookmarksLoading, getBookmarkForAnime]);
+  }, [animeId, bookmarksLoading, getBookmarkForAnime, showLoader, hideLoader]);
 
   useEffect(() => {
     if (anime && !bookmarksLoading) {
@@ -56,7 +61,7 @@ export default function AnimeDetailPage() {
   }, [anime, bookmarksLoading, getBookmarkForAnime]);
 
 
-  if (isLoading) {
+  if (localIsLoading && !anime) { // Show section loader only if no data yet
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
@@ -84,7 +89,7 @@ export default function AnimeDetailPage() {
       </>
     );
   }
-  
+
   const coverUrl = anime.coverUrl || `https://picsum.photos/seed/${anime.id}/400/600`;
   const encodedAnimeId = encodeURIComponent(anime.id);
 
@@ -133,7 +138,7 @@ export default function AnimeDetailPage() {
                 <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="lg" />
               </div>
             </header>
-            
+
             <Card className="mb-6 shadow-lg rounded-lg">
               <CardHeader>
                 <CardTitle className="text-2xl">Descripción</CardTitle>
@@ -155,9 +160,9 @@ export default function AnimeDetailPage() {
                       const isBookmarked = episode.episodeNumber === bookmarkedEpisodeNumber;
                       return (
                         <li key={episode.episodeNumber}>
-                          <Button 
-                            variant={isBookmarked ? "secondary" : "ghost"} 
-                            asChild 
+                          <Button
+                            variant={isBookmarked ? "secondary" : "ghost"}
+                            asChild
                             className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/10 rounded-md transition-colors"
                           >
                             <Link to={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center justify-between gap-3">

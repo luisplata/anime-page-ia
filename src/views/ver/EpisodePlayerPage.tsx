@@ -9,15 +9,17 @@ import { Helmet } from 'react-helmet-async';
 import { AlertTriangle, ArrowLeft, ListVideo, Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useBookmarks } from '@/hooks/use-bookmarks'; // Import useBookmarks
+import { useBookmarks } from '@/hooks/use-bookmarks';
+import { useLoading } from '@/contexts/loading-context'; // Import useLoading
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
-  const { setBookmark, removeBookmark, isEpisodeBookmarked, isLoading: bookmarksLoading } = useBookmarks(); // Use bookmarks hook
+  const { setBookmark, removeBookmark, isEpisodeBookmarked, isLoading: bookmarksLoading } = useBookmarks();
+  const { showLoader, hideLoader } = useLoading(); // Use global loading context
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [localIsLoading, setLocalIsLoading] = useState(true); // Renamed to avoid conflict
   const [error, setError] = useState<string | null>(null);
 
   const episodeNumber = parseInt(episodeNumberStr || '', 10);
@@ -25,24 +27,26 @@ export default function EpisodePlayerPage() {
   useEffect(() => {
     if (!animeId || !episodeNumberStr) {
       setError("ID de anime o número de episodio no proporcionado.");
-      setIsLoading(false);
+      setLocalIsLoading(false);
       return;
     }
 
     if (isNaN(episodeNumber)) {
       setError("Número de episodio inválido.");
-      setIsLoading(false);
+      setLocalIsLoading(false);
       return;
     }
 
     const fetchEpisodeData = async () => {
-      setIsLoading(true);
+      showLoader();
+      setLocalIsLoading(true);
       setError(null);
       try {
         const animeData = await getAnimeDetail(animeId);
         if (!animeData) {
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
-          setIsLoading(false);
+          setLocalIsLoading(false);
+          hideLoader();
           return;
         }
         setAnime(animeData);
@@ -57,12 +61,13 @@ export default function EpisodePlayerPage() {
         console.error(`Failed to fetch episode details for ${animeId}/${episodeNumber}:`, err);
         setError(`Error al cargar la información del episodio.`);
       } finally {
-        setIsLoading(false);
+        setLocalIsLoading(false);
+        hideLoader();
       }
     };
 
     fetchEpisodeData();
-  }, [animeId, episodeNumberStr, episodeNumber]);
+  }, [animeId, episodeNumberStr, episodeNumber, showLoader, hideLoader]);
 
   const handleBookmarkToggle = () => {
     if (!animeId || isNaN(episodeNumber) || bookmarksLoading) return;
@@ -74,7 +79,7 @@ export default function EpisodePlayerPage() {
     }
   };
 
-  if (isLoading) {
+  if (localIsLoading && !currentEpisode) { // Show section loader only if no current episode data
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-accent" />
@@ -140,16 +145,16 @@ export default function EpisodePlayerPage() {
         <header className="mb-4 text-center md:text-left">
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">{fullEpisodeTitle}</h1>
         </header>
-        
+
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-center md:justify-start">
             <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="default" />
-            <Button 
-              variant={isCurrentBookmarked ? "default" : "outline"} 
+            <Button
+              variant={isCurrentBookmarked ? "default" : "outline"}
               onClick={handleBookmarkToggle}
               disabled={bookmarksLoading}
               className="w-full sm:w-auto"
             >
-              {bookmarksLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+              {bookmarksLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :
                isCurrentBookmarked ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
               {isCurrentBookmarked ? 'Marcado como actual' : 'Marcar como actual'}
             </Button>
@@ -175,10 +180,9 @@ export default function EpisodePlayerPage() {
                   />
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-4">{anime.description}</p>
-                {/* Favorite button moved up */}
               </CardContent>
             </Card>
-            
+
             {otherEpisodes.length > 0 && (
               <Card className="shadow-lg rounded-lg">
                 <CardHeader className="p-4">

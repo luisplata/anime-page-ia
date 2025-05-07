@@ -1,15 +1,16 @@
 
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'; // Import useState and useEffect
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Search, Star } from 'lucide-react';
-import { Input } from '@/components/ui/input'; // Import useState and useEffect
+import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
-// Import views (pages)
 import HomePage from '@/views/HomePage';
 import DirectoryPage from '@/views/directorio/DirectoryPage';
 import AnimeDetailPage from '@/views/anime/AnimeDetailPage';
 import EpisodePlayerPage from '@/views/ver/EpisodePlayerPage';
 import FavoritesPage from '@/views/favoritos/FavoritesPage';
-import { useState, useEffect } from 'react'; // Import useState and useEffect
+import { useState, useEffect } from 'react';
+import { useLoading } from '@/contexts/loading-context'; // Import useLoading
+import { LoadingSpinner } from '@/components/loading-spinner'; // Import LoadingSpinner
 
 const animeImages = [
   '/assets/animebell_logo_name_prototype.png',
@@ -35,6 +36,7 @@ const animeImages = [
 
 export default function App() {
   const navigate = useNavigate();
+  const { isLoading } = useLoading(); // Consume global loading state
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,18 +48,17 @@ export default function App() {
   const [randomImage, setRandomImage] = useState('');
 
   useEffect(() => {
-    // Select a random image on component mount
     const randomIndex = Math.floor(Math.random() * animeImages.length);
     setRandomImage(animeImages[randomIndex]);
-  }, []); // Empty dependency array ensures this runs only once
+  }, []);
 
   return (
     <div className={`font-sans antialiased flex min-h-screen w-full flex-col bg-background text-foreground`}>
+      <LoadingSpinner isVisible={isLoading} /> {/* Render LoadingSpinner */}
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
         <Link to="/" className="flex items-center gap-2 text-lg font-semibold md:text-base">
           {randomImage && (
-            // Display the random image if it's loaded
-            <img src={randomImage} alt="Random Anime Image" className="h-8 w-8 object-cover rounded-full mr-2" /> // Added basic styling
+            <img src={randomImage} alt="Random Anime Image" className="h-8 w-8 object-cover rounded-full mr-2" />
           )}
           <h1 className="text-xl font-bold">AnimeBell</h1>
         </Link>
@@ -82,7 +83,7 @@ export default function App() {
         <div className="flex items-center gap-2 md:ml-auto md:gap-2 lg:gap-4">
           <form
             method="GET"
-            action="/directorio" 
+            action="/directorio"
             className="ml-auto flex-1 sm:flex-initial"
             onSubmit={handleSearchSubmit}
           >

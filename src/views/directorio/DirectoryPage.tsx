@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  getAnimeDirectory, 
+import {
+  getAnimeDirectory,
   searchAnimes} from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Input } from '@/components/ui/input';
@@ -11,33 +11,35 @@ import { Filter, Search, ListX, Loader2, ChevronLeft, ChevronRight } from 'lucid
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
 import type { PaginatedAnimeResponse } from '@/services/anime-api';
+import { useLoading } from '@/contexts/loading-context'; // Import useLoading
 
 export default function DirectoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  
+  const { showLoader, hideLoader } = useLoading(); // Use global loading context
+
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const searchQueryFromUrl = queryParams.get('q') || "";
   const pageFromUrl = parseInt(queryParams.get('page') || '1', 10);
 
   const [animeData, setAnimeData] = useState<PaginatedAnimeResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [localIsLoading, setLocalIsLoading] = useState(true); // Renamed to avoid conflict with global isLoading
   const [error, setError] = useState<string | null>(null);
-  
+
   const [pageTitle, setPageTitle] = useState("Directorio de Anime - AniView");
   const [pageDescription, setPageDescription] = useState("Explora nuestra vasta colección de series de anime.");
-  
-  // Local state for the input field, synced with URL on submit/mount
+
   const [searchInput, setSearchInput] = useState(searchQueryFromUrl);
 
   useEffect(() => {
-    setSearchInput(searchQueryFromUrl); // Sync input if URL query 'q' changes directly
+    setSearchInput(searchQueryFromUrl);
   }, [searchQueryFromUrl]);
 
 
   useEffect(() => {
     const fetchAnimes = async () => {
-      setIsLoading(true);
+      showLoader();
+      setLocalIsLoading(true);
       setError(null);
       try {
         let response: PaginatedAnimeResponse;
@@ -54,22 +56,22 @@ export default function DirectoryPage() {
       } catch (err) {
         console.error("Error fetching animes:", err);
         setError("No se pudo cargar la información de los animes.");
-        setAnimeData(null); // Clear data on error
+        setAnimeData(null);
       } finally {
-        setIsLoading(false);
+        setLocalIsLoading(false);
+        hideLoader();
       }
     };
     fetchAnimes();
-  }, [searchQueryFromUrl, pageFromUrl]); // Re-fetch if search query or page in URL changes
-  
+  }, [searchQueryFromUrl, pageFromUrl, showLoader, hideLoader]);
+
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // const query = (e.target as HTMLFormElement).q.value;
     const params = new URLSearchParams();
     if (searchInput.trim()) {
       params.set('q', searchInput.trim());
     }
-    params.set('page', '1'); // Reset to page 1 on new search
+    params.set('page', '1');
     navigate(`/directorio?${params.toString()}`);
   };
 
@@ -80,7 +82,7 @@ export default function DirectoryPage() {
     const params = new URLSearchParams(location.search);
     params.set('page', newPage.toString());
     navigate(`${location.pathname}?${params.toString()}`);
-    window.scrollTo(0, 0); // Scroll to top on page change
+    window.scrollTo(0, 0);
   };
 
   const displayedAnimes = animeData?.animes || [];
@@ -105,7 +107,7 @@ export default function DirectoryPage() {
           </p>
         </header>
 
-        <form 
+        <form
           onSubmit={handleSearchSubmit}
           className="mb-6 flex flex-col sm:flex-row gap-4"
         >
@@ -131,7 +133,7 @@ export default function DirectoryPage() {
         </form>
         <Separator className="my-6" />
 
-        {isLoading ? (
+        {localIsLoading && !animeData ? ( // Show section loader only if no data yet
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-accent" />
             <p className="ml-4 text-lg">Cargando animes...</p>
@@ -149,7 +151,7 @@ export default function DirectoryPage() {
               <div className="flex items-center justify-center space-x-1 mt-8 flex-wrap gap-y-2">
                 {paginationLinks.map((link, index) => {
                   let label = link.label;
-                  let isDisabled = !link.url || isLoading || link.active;
+                  let isDisabled = !link.url || localIsLoading || link.active;
                   let targetPage: number | null = null;
 
                   if (link.url) {
@@ -159,19 +161,18 @@ export default function DirectoryPage() {
                       if (pageStr) targetPage = parseInt(pageStr, 10);
                     } catch (e) { /* ignore if URL is malformed */ }
                   }
-                  
+
                   if (label === "&laquo; Previous") {
-                    label = ""; // Use Icon instead
+                    label = "";
                     if (!animeData?.prevPageUrl) isDisabled = true;
                     targetPage = currentPage - 1;
                   } else if (label === "Next &raquo;") {
-                    label = ""; // Use Icon instead
+                    label = "";
                     if (!animeData?.nextPageUrl) isDisabled = true;
                     targetPage = currentPage + 1;
                   } else if (label === "...") {
-                     isDisabled = true; // ... is not clickable
+                     isDisabled = true;
                   }
-
 
                   return (
                     <Button
@@ -183,8 +184,8 @@ export default function DirectoryPage() {
                       className={label === "..." ? "cursor-default" : ""}
                       aria-label={link.label === "&laquo; Previous" ? "Página anterior" : link.label === "Next &raquo;" ? "Página siguiente" : `Página ${link.label}`}
                     >
-                      {link.label === "&laquo; Previous" ? <ChevronLeft className="h-4 w-4" /> : 
-                       link.label === "Next &raquo;" ? <ChevronRight className="h-4 w-4" /> : 
+                      {link.label === "&laquo; Previous" ? <ChevronLeft className="h-4 w-4" /> :
+                       link.label === "Next &raquo;" ? <ChevronRight className="h-4 w-4" /> :
                        label}
                     </Button>
                   );
