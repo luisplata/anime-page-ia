@@ -1,443 +1,305 @@
-/**
- * @fileOverview Service for fetching anime data from the AniView API.
- *
- * This service provides functions to interact with the anime API,
- * fetching lists of anime, details for specific anime, episode information, etc.
- * It maps the API responses to an internal data structure for consistent use
- * throughout the application.
- */
+// src/services/anime-api.ts
 
-// Base URL for the anime API, configured via environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT;
+// Helper to get cookie value by name (client-side)
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') {
+    return null; // Not in a browser environment
+  }
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for(let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
 
-// --- Internal API Response Interfaces (matching Postman collection and new structure) ---
+const API_BASE_URL = process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT || 'https://backend.animebell.peryloth.com';
 
-export interface EpisodeSource { // Exported for use in components
+// --- Interfaces for API responses ---
+
+// Source for an episode stream
+interface ApiEpisodeSource {
+  id: number;
+  episode_id: number;
+  name: string;
+  url: string;
+  quality?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// For /api/episodes -> data array items
+interface ApiEpisodeListItem {
+  id: number; // Episode ID
+  anime_id: number;
+  number: number; // Episode number
+  title: string; // Episode title
+  created_at: string;
+  updated_at: string;
+  published_at: string;
+  anime: { // Nested anime object
+    id: number; // Anime ID
+    slug: string;
+    // Assuming 'name' can be string[] as per previous error, or string.
+    // The provided Postman for /api/episodes had 'title' as string for anime.
+    // Let's assume API is consistent with anime having 'title' (string) and 'slug' (string)
+    title: string; // Preferring 'title' as string based on other endpoints. If it's 'name: string[]', adjust mapping.
+    image: string; // Thumbnail for anime
+  };
+  sources: ApiEpisodeSource[];
+}
+interface ApiEpisodesResponse {
+  data: ApiEpisodeListItem[];
+  current_page?: number;
+  last_page?: number;
+  // ... other pagination fields if present
+}
+
+
+// For /api/animes -> data array items & /api/animes/search -> data array items
+interface ApiAnimeListItem {
+  id: number;
+  slug: string;
+  title: string;
+  image: string; // Thumbnail
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+interface ApiAnimesDirectoryResponse { // For /api/animes
+  data: ApiAnimeListItem[];
+  current_page?: number;
+  last_page?: number;
+  // ... other pagination fields
+}
+interface ApiAnimesSearchResponse { // For /api/animes/search
+  data: ApiAnimeListItem[];
+  current_page?: number;
+  last_page?: number;
+  // ... other pagination fields
+}
+
+
+// For /api/anime/{slug}
+interface ApiAnimeEpisodeDetail { // Episode structure within AnimeDetail
+  id: number; // Episode ID
+  anime_id: number;
+  number: number;
+  title?: string;
+  created_at: string;
+  updated_at: string;
+  published_at: string;
+  sources: ApiEpisodeSource[];
+}
+interface ApiAnimeDetailResponse {
+  id: number; // Anime ID
+  slug: string;
+  title: string;
+  description?: string | null;
+  image: string; // Cover URL for the anime
+  created_at: string;
+  updated_at: string;
+  episodes: ApiAnimeEpisodeDetail[];
+}
+
+
+// --- Interfaces for components ---
+export interface EpisodeSource {
   name: string;
   url: string;
   quality?: string;
 }
 
-interface ApiEpisode { // Represents an episode object within AnimeDetail or as a standalone specific episode
-  id: number; // Numeric ID of the episode
+export interface Episode {
+  episodeNumber: number;
+  streamingSources: EpisodeSource[];
   title?: string;
-  number: number;
-  sources: EpisodeSource[];
-  anime_id?: number; // Present in specific_episode response from API
 }
 
-interface ApiAnimeBase {
-  id: number; // Numeric ID from API
-  title: string;
-  slug: string;
-  description: string;
-  image: string;
-}
-
-interface ApiAnimeListItem extends ApiAnimeBase {
-  // Specific fields for list items if any
-}
-
-interface ApiAnimeDetailResponse extends ApiAnimeBase {
-  episodes: ApiEpisode[];
-}
-
-interface ApiPagedResponse<T> {
-  current_page: number;
-  data: T[];
-  first_page_url: string;
-  from: number;
-  last_page: number;
-  last_page_url: string;
-  links: { url: string | null; label: string; active: boolean }[];
-  next_page_url: string | null;
-  path: string;
-  per_page: number;
-  prev_page_url: string | null;
-  to: number;
-  total: number;
-}
-
-interface ApiEpisodeListItem { // For the /api/episodes endpoint (list of latest episodes)
-  id: number; // Numeric ID for the episode entry itself
-  title?: string; // Episode title
-  number: number; // Episode number
-  anime: { // Nested anime object
-    id: number; // Numeric anime ID
-    title: string;
-    slug: string;
-    image: string;
-  };
-  sources: EpisodeSource[];
-}
-
-
-// --- Application-facing Data Structures ---
-
-/**
- * Represents a simplified anime object for directory listings.
- */
-export interface AnimeListing {
-  /**
-   * The unique slug for the anime (used as ID in app).
-   */
-  id: string;
-  /**
-   * The title of the anime.
-   */
-  title: string;
-  /**
-   * The URL of the anime's thumbnail image.
-   */
-  thumbnailUrl: string;
-}
-
-/**
- * Represents detailed information about a specific anime.
- */
 export interface AnimeDetail {
-  /**
-   * The unique slug for the anime (used as ID in app).
-   */
-  id: string;
-  /**
-   * The title of the anime.
-   */
+  id: string; // This will be the slug
   title: string;
-  /**
-   * A comprehensive description or plot summary of the anime.
-   */
   description: string;
-  /**
-   * The URL of the anime's cover image.
-   */
   coverUrl: string;
-  /**
-   * An array of episode objects, each containing information about an episode.
-   */
   episodes: Episode[];
 }
 
-/**
- * Represents a single episode of an anime.
- */
-export interface Episode {
-  /**
-   * The episode number (e.g., 1, 2, 3).
-   */
-  episodeNumber: number;
-  /**
-   * The available streaming sources for the episode.
-   */
-  streamingSources: EpisodeSource[];
-  /**
-   * The title of the episode. Can be undefined.
-   */
-  title?: string;
-}
-
-/**
- * Represents a newly released anime episode for homepage display.
- */
-export interface NewEpisode {
-  /**
-   * The unique slug for the anime (used as ID in app).
-   */
-  animeId: string;
-  /**
-   * The title of the anime.
-   */
-  animeTitle: string;
-  /**
-   * The episode number.
-   */
-  episodeNumber: number;
-  /**
-   * The URL of the episode's thumbnail (usually the anime's cover).
-   */
+export interface AnimeListing { // Used for directory, search results, latest added
+  id: string; // This will be the slug
+  title: string;
   thumbnailUrl: string;
-  /**
-   * The available streaming sources for the episode.
-   */
-  streamingSources: EpisodeSource[];
 }
 
-// --- Helper Functions ---
-
-/**
- * Sanitizes a slug string by removing a leading '#' if present.
- * @param slug The raw slug string from the API.
- * @returns A cleaned slug string, or undefined if the input was undefined/null.
- */
-function sanitizeApiSlug(slug: string | undefined | null): string | undefined {
-  if (!slug) return undefined;
-  return slug.startsWith('#') ? slug.substring(1) : slug;
+export interface NewEpisode { // Used for latest episodes feed ("Capítulos del Día")
+  animeId: string; // slug of the anime
+  animeTitle: string;
+  episodeNumber: number;
+  thumbnailUrl: string; // thumbnail of the anime (from ep.anime.image)
+  // title?: string; // title of the episode itself - AnimeCard handles this as "Anime Title - Episode X"
 }
 
-/**
- * Fetches data from the API with common headers and error handling.
- * @param endpoint The API endpoint path (e.g., '/api/animes').
- * @param options Additional fetch options.
- * @returns A promise that resolves to the JSON response.
- * @throws Error if the API request fails or if JSON parsing fails.
- */
-async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  if (!API_BASE_URL) {
-    throw new Error("API base URL is not configured. Please set NEXT_PUBLIC_ANIME_API_ENDPOINT.");
-  }
 
+// --- API Fetcher ---
+async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  const headersInit: HeadersInit = {
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...options?.headers,
   };
 
-  // Client-UUID logic: Only attempt to add if on the client-side
-  if (typeof window !== 'undefined') {
-    let clientUUID: string | null = null;
-    try {
-      clientUUID = localStorage.getItem('client-uuid');
-      if (!clientUUID && typeof document !== 'undefined' && document.cookie) {
-        const cookieString = document.cookie;
-        const cookiesArray = cookieString.split('; ');
-        const uuidCookie = cookiesArray.find(row => row.trim().startsWith('client-uuid='));
-        if (uuidCookie) {
-          clientUUID = uuidCookie.split('=')[1];
-        }
-      }
-    } catch (e) {
-        console.warn("Could not access localStorage or cookies for client UUID.", e);
-    }
-    
+  if (typeof window !== 'undefined') { // Check if running in browser
+    const clientUUID = getCookie('client-uuid');
     if (clientUUID) {
-      headersInit['X-Client-UUID'] = clientUUID;
+      headers['X-Client-UUID'] = clientUUID;
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers: headersInit,
-  });
+  const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    console.error(`API Error (${response.status}) for ${url}: ${errorBody}`);
-    let errorMessage = response.statusText;
-    if (errorBody) {
-        try {
-            const parsedError = JSON.parse(errorBody);
-            errorMessage = parsedError.message || parsedError.error || errorBody;
-        } catch (e) {
-            errorMessage = errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody;
-        }
+    let errorBody;
+    try {
+      errorBody = await response.json();
+    } catch (e) {
+      // If response is not JSON, try to get text
+      try {
+        errorBody = await response.text();
+      } catch (textError) {
+        errorBody = `Status: ${response.statusText}`;
+      }
     }
-    throw new Error(`API request failed with status ${response.status}: ${errorMessage}`);
+    console.error(`API Error (${response.status}) for ${url}:`, errorBody);
+    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
   }
-
-  try {
-    const textResponse = await response.text();
-    if (!textResponse && response.status !== 204) { 
-        throw new Error(`API request to ${url} (status ${response.status}) succeeded but returned an empty response body.`);
-    }
-    if (response.status === 204) { 
-        return null as T; 
-    }
-    return JSON.parse(textResponse) as T;
-  } catch (e: any) {
-    console.error(`API Error for ${url} (status ${response.status}): Failed to parse JSON response. Error: ${e.message}.`);
-    throw new Error(`API request to ${url} (status ${response.status}) succeeded but failed to process the response: ${e.message}`);
+  // Handle cases where response might be empty but OK (e.g., 204 No Content)
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.indexOf("application/json") !== -1) {
+    return response.json();
   }
+  // @ts-ignore If not JSON, but OK, return as is or handle as needed
+  return {} as T; // Or throw an error if JSON is always expected
 }
+
 
 // --- API Service Functions ---
 
-/**
- * Asynchronously retrieves the latest anime episodes.
- * Corresponds to Postman's "all_episodes" request.
- * @returns A promise that resolves to an array of NewEpisode objects.
- */
 export async function getLatestEpisodes(): Promise<NewEpisode[]> {
   try {
-    const response = await fetchFromApi<ApiPagedResponse<ApiEpisodeListItem>>('/api/episodes?page=1&per_page=20'); // Fetch first 20
+    // Postman collection for /api/episodes returns a paginated response with `data` field.
+    const response = await fetchFromApi<ApiEpisodesResponse>('/api/episodes?sort=latest&per_page=20'); // Example: Fetch 20 latest
+    if (!response || !response.data) {
+        console.warn('Received empty or invalid data from /api/episodes');
+        return [];
+    }
     return response.data.map((ep): NewEpisode => {
-      const cleanSlug = sanitizeApiSlug(ep.anime?.slug);
-      const animeIdToUse = cleanSlug || `unknown-anime-${ep.anime?.id || ep.id}`;
-      
+      // Assuming ep.anime.name was a string array causing previous issues.
+      // If ep.anime.title is now a string (more consistent), use it directly.
+      // Let's use ep.anime.title as string for now, based on consistency with other anime objects.
+      // If it's truly `name: string[]`, then `ep.anime.name.join(' ')` is correct.
+      // Given the provided postman for /api/episodes, it has `anime.title` (string).
+      const animeTitle = ep.anime.title;
+
       return {
-        animeId: animeIdToUse,
-        animeTitle: ep.anime?.title || `Episodio ${ep.number} (Título Desconocido)`,
+        animeId: ep.anime.slug,
+        animeTitle: animeTitle,
         episodeNumber: ep.number,
-        thumbnailUrl: ep.anime?.image || `https://picsum.photos/seed/ep-${ep.anime?.id || ep.id}/300/300`,
-        streamingSources: ep.sources?.map(s => ({ name: s.name, url: s.url, quality: s.quality })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
+        thumbnailUrl: ep.anime.image,
       };
     });
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
-    return Array.from({ length: 20 }, (_, i) => ({
-      animeId: `error-ep-${i + 1}`,
-      animeTitle: `Error Anime ${i + 1}`,
-      episodeNumber: 1,
-      thumbnailUrl: `https://picsum.photos/seed/error-ep-${i+1}/300/300`,
-      streamingSources: [{ name: "ErrorSource", url: 'https://example.com/error-stream', quality: 'Unknown' }],
-    }));
+    return [];
   }
 }
 
-/**
- * Asynchronously retrieves a list of anime for the directory.
- * Corresponds to Postman's "all_animes" request.
- * @returns A promise that resolves to an array of AnimeListing objects.
- */
+export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
+  try {
+    // Assuming /api/animes by default returns latest, or add query param if available e.g. ?sort_by=created_at&order=desc
+    const response = await fetchFromApi<ApiAnimesDirectoryResponse>('/api/animes?per_page=10'); // Example: Fetch 10 latest added
+     if (!response || !response.data) {
+        console.warn('Received empty or invalid data from /api/animes for latest added');
+        return [];
+    }
+    return response.data.map((anime): AnimeListing => ({
+      id: anime.slug,
+      title: anime.title,
+      thumbnailUrl: anime.image,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch latest added anime:", error);
+    return [];
+  }
+}
+
 export async function getAnimeDirectory(): Promise<AnimeListing[]> {
-   try {
-    const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=25'); // Fetch first 25
-    return response.data.map((anime): AnimeListing => {
-      const cleanSlug = sanitizeApiSlug(anime.slug);
-      const idToUse = cleanSlug || `unknown-anime-${anime.id}`;
-      return {
-        id: idToUse,
-        title: anime.title || `Anime Desconocido ${anime.id}`,
-        thumbnailUrl: anime.image || `https://picsum.photos/seed/anime-${anime.id}/300/300`,
-      };
-    });
+  try {
+    // Fetch all pages if pagination exists, or just the first page.
+    // For simplicity, fetching first page. Add pagination handling if needed.
+    const response = await fetchFromApi<ApiAnimesDirectoryResponse>('/api/animes?per_page=100'); // Fetch a large number for "all"
+    if (!response || !response.data) {
+        console.warn('Received empty or invalid data from /api/animes for directory');
+        return [];
+    }
+    return response.data.map((anime): AnimeListing => ({
+      id: anime.slug,
+      title: anime.title,
+      thumbnailUrl: anime.image,
+    }));
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
-    return Array.from({ length: 20 }, (_, i) => ({
-      id: `error-dir-${i + 1}`,
-      title: `Error Anime Series ${i + 1}`,
-      thumbnailUrl: `https://picsum.photos/seed/error-dir-${i+1}/300/300`,
-    }));
+    return [];
   }
 }
 
-/**
- * Asynchronously retrieves detailed information about a specific anime.
- * Corresponds to Postman's "specific_anime" request.
- * @param animeId The unique slug (used as ID) of the anime.
- * @returns A promise that resolves to an AnimeDetail object.
- */
-export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
-  // The animeId parameter is already a slug from the URL, assume it's clean or
-  // if it had a leading #, it would have been part of the URL encoding/decoding.
-  // The critical part is ensuring the `id` field *returned* by this function is clean.
+export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail> {
   try {
-    const anime = await fetchFromApi<ApiAnimeDetailResponse>(`/api/anime/${animeId}`);
-    const title = anime.title || `Anime Desconocido ${anime.id}`;
-    const cleanSlug = sanitizeApiSlug(anime.slug);
-    const idToUse = cleanSlug || animeId; // Fallback to animeId if API slug is missing/problematic
-
+    const anime = await fetchFromApi<ApiAnimeDetailResponse>(`/api/anime/${animeSlug}`);
     return {
-      id: idToUse,
-      title: title,
-      description: anime.description?.startsWith('/') ? `Description for ${title} (placeholder from API)` : (anime.description || "No description available."),
-      coverUrl: anime.image || `https://picsum.photos/seed/${idToUse}/400/600`,
+      id: anime.slug,
+      title: anime.title,
+      description: anime.description?.startsWith('/') 
+        ? `Información sobre ${anime.title}.` // Placeholder if description is a path
+        : (anime.description || "No hay descripción disponible."),
+      coverUrl: anime.image, // API's `image` field is the cover for detail view
       episodes: (anime.episodes || []).map((ep): Episode => ({
         episodeNumber: ep.number,
-        streamingSources: ep.sources?.map(source => ({
+        streamingSources: ep.sources.map(source => ({
           name: source.name,
           url: source.url,
-          quality: source.quality
-        })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
+          quality: source.quality,
+        })),
         title: ep.title || `Episodio ${ep.number}`,
-      })).sort((a, b) => a.episodeNumber - b.episodeNumber),
+      })).sort((a, b) => a.episodeNumber - b.episodeNumber), // Ensure episodes are sorted
     };
   } catch (error) {
-    console.error(`Failed to fetch details for anime ${animeId}:`, error);
-    return {
-      id: `error-detail-${animeId}`,
-      title: `Anime no encontrado: ${animeId}`,
-      description: "No se pudo cargar la descripción de este anime.",
-      coverUrl: 'https://picsum.photos/seed/error-detail/400/600',
+    console.error(`Failed to fetch details for anime ${animeSlug}:`, error);
+    return { // Return a structured error object for the page to handle
+      id: `error-detail-${animeSlug}`,
+      title: `Anime no encontrado: ${animeSlug}`,
+      description: "No se pudo cargar la información de este anime. Puede que el enlace sea incorrecto, el anime no exista, o haya un problema con la API.",
+      coverUrl: 'https://picsum.photos/seed/error-detail-not-found/400/600',
       episodes: [],
     };
   }
 }
 
-
-/**
- * Asynchronously retrieves the latest added anime series.
- * This might be similar to getAnimeDirectory or a specific endpoint if available.
- * For now, let's assume it's similar to the directory but could be a different sort order or endpoint.
- * We will use the `/api/animes` endpoint and sort by a hypothetical 'added_date' if available,
- * or just use the first page as a proxy for "latest added".
- * @returns A promise that resolves to an array of AnimeListing objects.
- */
-export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
+export async function searchAnimes(query: string): Promise<AnimeListing[]> {
+  if (!query.trim()) return [];
   try {
-    const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=20'); // Fetch first 20
-    return response.data.map((anime): AnimeListing => {
-      const cleanSlug = sanitizeApiSlug(anime.slug);
-      const idToUse = cleanSlug || `unknown-anime-${anime.id}`;
-      return {
-        id: idToUse,
-        title: anime.title || `Anime Desconocido ${anime.id}`,
-        thumbnailUrl: anime.image || `https://picsum.photos/seed/new-anime-${anime.id}/300/300`,
-      };
-    });
-  } catch (error) {
-    console.error("Failed to fetch latest added anime:", error);
-    return Array.from({ length: 20 }, (_, i) => ({
-      id: `error-new-${i + 1}`,
-      title: `Error Anime Nuevo ${i + 1}`,
-      thumbnailUrl: `https://picsum.photos/seed/error-new-${i+1}/300/300`,
+    const response = await fetchFromApi<ApiAnimesSearchResponse>(`/api/animes/search?q=${encodeURIComponent(query)}`);
+     if (!response || !response.data) {
+        console.warn(`Received empty or invalid data from /api/animes/search for query: ${query}`);
+        return [];
+    }
+    return response.data.map((anime): AnimeListing => ({
+      id: anime.slug,
+      title: anime.title,
+      thumbnailUrl: anime.image,
     }));
-  }
-}
-
-/**
- * Searches for anime based on a query string.
- * Corresponds to Postman's "animes_search" request.
- * @param query The search term.
- * @returns A promise that resolves to an array of AnimeListing objects.
- */
-export async function searchAnime(query: string): Promise<AnimeListing[]> {
-  if (!query.trim()) {
-    return [];
-  }
-  try {
-    const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>(`/api/animes/search?q=${encodeURIComponent(query)}`);
-    return response.data.map((anime): AnimeListing => {
-      const cleanSlug = sanitizeApiSlug(anime.slug);
-      const idToUse = cleanSlug || `unknown-search-${anime.id}`;
-      return {
-        id: idToUse,
-        title: anime.title || `Anime Desconocido ${anime.id}`,
-        thumbnailUrl: anime.image || `https://picsum.photos/seed/search-${anime.id}/300/300`,
-      };
-    });
   } catch (error) {
     console.error(`Failed to search for anime with query "${query}":`, error);
     return [];
   }
 }
-
-
-/**
- * Retrieves a specific episode's details, primarily its streaming sources.
- * Corresponds to Postman's "specific_episode" request.
- * The API endpoint seems to be `/api/episodes/{anime_slug}-{episode_number}`.
- *
- * @param animeSlug The slug of the anime.
- * @param episodeNumber The episode number.
- * @returns A promise that resolves to an Episode object or null if not found/error.
- */
-export async function getEpisodeDetails(animeSlug: string, episodeNumber: number): Promise<Episode | null> {
-  // animeSlug here comes from the URL, which should already be URL-decoded.
-  // We form the API path part by combining it with the episode number.
-  const episodeIdPath = `${animeSlug}-${episodeNumber}`;
-  try {
-    const episodeData = await fetchFromApi<ApiEpisode>(`/api/episodes/${episodeIdPath}`);
-
-    if (!episodeData) return null;
-
-    return {
-      episodeNumber: episodeData.number,
-      streamingSources: episodeData.sources?.map(s => ({ name: s.name, url: s.url, quality: s.quality })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
-      title: episodeData.title || `Episodio ${episodeData.number}`,
-    };
-  } catch (error) {
-    console.error(`Failed to fetch details for episode ${episodeIdPath}:`, error);
-    return null;
-  }
-}
-    
