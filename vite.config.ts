@@ -14,6 +14,7 @@ export default defineConfig({
   server: {
     port: 9002, // Matches your previous Next.js dev port
     host: true,
+    strictPort: true, // If port is already in use, exit.
   },
   build: {
     outDir: 'dist', // Output directory for build files
@@ -23,3 +24,4 @@ export default defineConfig({
     // 'process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT': JSON.stringify(process.env.VITE_ANIME_API_ENDPOINT),
   }
 });
+
