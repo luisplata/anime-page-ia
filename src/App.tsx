@@ -1,7 +1,5 @@
 
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-// import { GeistSans } from 'geist/font/sans'; // Removed: Font will be handled by global CSS import
-// import { Toaster } from '@/components/ui/toaster'; // Removed redundant import
 import { Button } from '@/components/ui/button';
 import { Tv, Search, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -21,7 +19,8 @@ export default function App() {
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const query = (e.target as HTMLFormElement).q.value;
+    const formData = new FormData(e.target as HTMLFormElement);
+    const query = formData.get('q') as string;
     navigate(`/directorio?q=${encodeURIComponent(query)}`);
   };
 
@@ -53,7 +52,7 @@ export default function App() {
         <div className="flex items-center gap-2 md:ml-auto md:gap-2 lg:gap-4">
           <form
             method="GET"
-            action="/directorio" // Action is illustrative, submit is handled by JS
+            action="/directorio" 
             className="ml-auto flex-1 sm:flex-initial"
             onSubmit={handleSearchSubmit}
           >
@@ -78,12 +77,8 @@ export default function App() {
           <Route path="/anime/:animeId" element={<AnimeDetailPage />} />
           <Route path="/ver/:animeId/:episodeNumber" element={<EpisodePlayerPage />} />
           <Route path="/favoritos" element={<FavoritesPage />} />
-          {/* Add a 404 Not Found route if desired */}
-          {/* <Route path="*" element={<NotFoundPage />} /> */}
         </Routes>
       </main>
-      {/* Toaster is rendered once by FavoritesProvider or ThemeProvider context in index.tsx potentially */}
     </div>
   );
 }
-

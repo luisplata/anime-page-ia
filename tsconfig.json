@@ -1,31 +1,34 @@
 
 {
   "compilerOptions": {
-    "target": "ES2020", // Updated target
-    "useDefineForClassFields": true, // Recommended for Vite
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true, // Keep if you have JS files
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler", // Changed from node to bundler
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx", // Changed from preserve to react-jsx
-    "incremental": true, // Can be removed if not needed
-    // "plugins": [ // Next.js plugin removed
-    //   {
-    //     "name": "next"
-    //   }
-    // ],
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite.config.ts"], // Ensure vite.config.ts is included
-  "exclude": ["node_modules", "dist"], // Exclude build output
-  "references": [{ "path": "./tsconfig.node.json" }] // Optional: for Vite config type checking
+  "include": ["src", "vite.config.ts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
-
