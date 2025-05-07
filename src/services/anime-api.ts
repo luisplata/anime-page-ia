@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Service for fetching anime data from the AniView API.
  *
@@ -23,13 +22,13 @@ interface ApiEpisode { // Represents an episode object within AnimeDetail or as 
   id: number; // Numeric ID of the episode
   title?: string;
   number: number;
-  sources: EpisodeSource[]; 
+  sources: EpisodeSource[];
   anime_id?: number; // Present in specific_episode response from API
 }
 
 interface ApiAnimeBase {
   id: number; // Numeric ID from API
-  title: string; 
+  title: string;
   slug: string;
   description: string;
   image: string;
@@ -40,7 +39,7 @@ interface ApiAnimeListItem extends ApiAnimeBase {
 }
 
 interface ApiAnimeDetailResponse extends ApiAnimeBase {
-  episodes: ApiEpisode[]; 
+  episodes: ApiEpisode[];
 }
 
 interface ApiPagedResponse<T> {
@@ -65,11 +64,11 @@ interface ApiEpisodeListItem { // For the /api/episodes endpoint (list of latest
   number: number; // Episode number
   anime: { // Nested anime object
     id: number; // Numeric anime ID
-    title: string; 
+    title: string;
     slug: string;
     image: string;
   };
-  sources: EpisodeSource[]; 
+  sources: EpisodeSource[];
 }
 
 
@@ -186,41 +185,32 @@ function generateUUID(): string {
  * @param endpoint The API endpoint path (e.g., '/api/animes').
  * @param options Additional fetch options.
  * @returns A promise that resolves to the JSON response.
- * @throws Error if the API request fails.
+ * @throws Error if the API request fails or if JSON parsing fails.
  */
 async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   if (!API_BASE_URL) {
     throw new Error("API base URL is not configured. Please set NEXT_PUBLIC_ANIME_API_ENDPOINT.");
   }
 
-  let clientUUID: string | null = ''; // Ensure clientUUID can be null
-  if (typeof window !== 'undefined') { 
-    clientUUID = localStorage.getItem('client-uuid'); 
-    if (!clientUUID) {
-      const cookieString = typeof document !== 'undefined' ? document.cookie : '';
+  let clientUUID: string | null = null;
+  if (typeof window !== 'undefined') { // Guard for browser-specific code
+    clientUUID = localStorage.getItem('client-uuid'); // Primary source
+    if (!clientUUID && typeof document !== 'undefined') { // Fallback to cookie if not in localStorage
+      const cookieString = document.cookie;
       const cookiesArray = cookieString.split('; ');
       const uuidCookie = cookiesArray.find(row => row.startsWith('client-uuid='));
       if (uuidCookie) {
         clientUUID = uuidCookie.split('=')[1];
       }
     }
-    if (!clientUUID) {
-        clientUUID = generateUUID();
-        try {
-          localStorage.setItem('client-uuid', clientUUID); 
-        } catch (e) {
-          console.warn("Could not set client-uuid in localStorage", e);
-        }
-    }
   }
-  
 
   const url = `${API_BASE_URL}${endpoint}`;
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
   };
 
-  if (clientUUID) {
+  if (clientUUID) { // Only add header if UUID was found (i.e., on client and UUID exists)
     defaultHeaders['X-Client-UUID'] = clientUUID;
   }
 
@@ -230,15 +220,31 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
       ...defaultHeaders,
       ...options.headers,
     },
-    // next: { revalidate: 3600 } // This is App Router specific, remove for Pages Router or use other caching strategies
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
     console.error(`API Error (${response.status}) for ${url}: ${errorBody}`);
-    throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
+    let errorMessage = response.statusText;
+    if (errorBody) {
+        try {
+            const parsedError = JSON.parse(errorBody);
+            errorMessage = parsedError.message || parsedError.error || errorBody;
+        } catch (e) {
+            // If errorBody is not JSON (e.g., HTML error page from server), use a snippet
+            errorMessage = errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody;
+        }
+    }
+    throw new Error(`API request failed with status ${response.status}: ${errorMessage}`);
   }
-  return response.json() as Promise<T>;
+
+  try {
+    return await response.json() as Promise<T>;
+  } catch (e) {
+    const responseText = await response.text(); // Get text response if JSON parsing fails
+    console.error(`API Error (${response.status}) for ${url}: Failed to parse JSON. Response text (first 500 chars): ${responseText.substring(0, 500)}`);
+    throw new Error(`API request to ${url} (status ${response.status}) succeeded but failed to parse JSON response.`);
+  }
 }
 
 // --- API Service Functions ---
@@ -260,7 +266,7 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
-    return Array.from({ length: 20 }, (_, i) => ({ 
+    return Array.from({ length: 20 }, (_, i) => ({
       animeId: `error-ep-${i + 1}`,
       animeTitle: `Error Anime ${i + 1}`,
       episodeNumber: 1,
@@ -285,7 +291,7 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
-    return Array.from({ length: 20 }, (_, i) => ({ 
+    return Array.from({ length: 20 }, (_, i) => ({
       id: `error-dir-${i + 1}`,
       title: `Error Anime Series ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-dir-${i+1}/300/300`,
@@ -310,7 +316,7 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
       coverUrl: anime.image || `https://picsum.photos/seed/${animeId}/400/600`,
       episodes: (anime.episodes || []).map((ep): Episode => ({
         episodeNumber: ep.number,
-        streamingSources: ep.sources?.map(source => ({ 
+        streamingSources: ep.sources?.map(source => ({
           name: source.name,
           url: source.url,
           quality: source.quality
@@ -321,7 +327,7 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
   } catch (error) {
     console.error(`Failed to fetch details for anime ${animeId}:`, error);
     return {
-      id: `error-detail-${animeId}`, 
+      id: `error-detail-${animeId}`,
       title: `Anime no encontrado: ${animeId}`,
       description: "No se pudo cargar la descripción de este anime.",
       coverUrl: 'https://picsum.photos/seed/error-detail/400/600',
@@ -349,7 +355,7 @@ export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch latest added anime:", error);
-    return Array.from({ length: 20 }, (_, i) => ({ 
+    return Array.from({ length: 20 }, (_, i) => ({
       id: `error-new-${i + 1}`,
       title: `Error Anime Nuevo ${i + 1}`,
       thumbnailUrl: `https://picsum.photos/seed/error-new-${i+1}/300/300`,

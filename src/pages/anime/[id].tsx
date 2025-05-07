@@ -57,7 +57,7 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
                   className="object-cover"
                   data-ai-hint="anime cover art"
                   priority
-                  unoptimized={coverUrl.startsWith('http://')} 
+                  // unoptimized prop removed to rely on global config
                 />
               </div>
             </Card>
@@ -118,16 +118,9 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  // TODO: Implement a function in src/services/anime-api.ts to fetch a list of all anime IDs.
-  // For static export, all paths must be defined here, or fallback: 'blocking' or true must be used.
-  // const allAnime = await getAllAnimeIds(); // Replace with your actual data fetching function
-  // const paths = allAnime.map((id) => ({
-  //   params: { id: id.toString() },
-  // }));
-  // return { paths, fallback: false }; 
   return {
-    paths: [], // Placeholder: No paths pre-rendered.
-    fallback: 'blocking', // Generates pages on demand then caches. Consider changing to 'true' or 'false' for full static export.
+    paths: [], 
+    fallback: 'blocking', 
   };
 };
 
@@ -135,22 +128,21 @@ export const getStaticProps: GetStaticProps<AnimeDetailPageProps> = async (conte
   const id = context.params?.id as string;
 
   if (!id) {
-    return { props: { anime: null, error: "ID de anime no proporcionado." } }; // Removed revalidate
+    return { props: { anime: null, error: "ID de anime no proporcionado." } };
   }
 
   try {
     const anime = await getAnimeDetail(id);
-     if (!anime || anime.id.startsWith('error-detail-')) { // Check for error placeholder from API service
-      return { props: { anime: null, error: `No se encontró el anime con ID: ${id}` } }; // Removed revalidate
+     if (!anime || anime.id.startsWith('error-detail-')) { 
+      return { props: { anime: null, error: `No se encontró el anime con ID: ${id}` } };
     }
     return {
       props: {
         anime,
       },
-      // revalidate: 3600, // Removed for static export compatibility
     };
   } catch (error) {
     console.error("Failed to fetch anime details in getStaticProps:", error);
-    return { props: { anime: null, error: "Error al cargar la información del anime." } }; // Removed revalidate
+    return { props: { anime: null, error: "Error al cargar la información del anime." } };
   }
 };

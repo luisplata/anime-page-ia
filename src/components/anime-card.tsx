@@ -73,7 +73,7 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
               className="object-cover"
               data-ai-hint={dataAiHint}
               priority={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5}
-              unoptimized={thumbnailUrl.startsWith('http://')}
+              // Removed unoptimized prop here to rely on global next.config.ts setting
             />
           </div>
         </CardHeader>
