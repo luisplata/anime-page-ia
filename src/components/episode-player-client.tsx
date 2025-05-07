@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Episode, EpisodeSource } from '@/services/anime-api';
@@ -9,7 +10,7 @@ import { PlayCircle, AlertTriangle, Film } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface EpisodePlayerClientProps {
-  episode: Episode | undefined;
+  episode: Episode | null | undefined; // Allow null
   animeTitle: string;
   fullEpisodeTitle: string;
 }
@@ -34,8 +35,6 @@ export default function EpisodePlayerClient({ episode, animeTitle, fullEpisodeTi
   };
 
   if (!episode) {
-    // This case should ideally be handled by the parent server component,
-    // but as a fallback:
     return (
         <div className="w-full h-full flex flex-col items-center justify-center text-primary-foreground bg-muted p-8 rounded-lg shadow-xl">
             <AlertTriangle className="h-16 w-16 mb-4 text-destructive" />

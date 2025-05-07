@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Service for fetching anime data from the AniView API.
  *
@@ -192,29 +193,27 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
     throw new Error("API base URL is not configured. Please set NEXT_PUBLIC_ANIME_API_ENDPOINT.");
   }
 
-  let clientUUID = '';
-  if (typeof window !== 'undefined') { // Check if running in the browser
-    clientUUID = localStorage.getItem('client-uuid'); // Primary source: localStorage (set by ClientUuidProvider)
+  let clientUUID: string | null = ''; // Ensure clientUUID can be null
+  if (typeof window !== 'undefined') { 
+    clientUUID = localStorage.getItem('client-uuid'); 
     if (!clientUUID) {
-      // Fallback: try to read from cookie if localStorage is empty (e.g., first hit before useEffect in provider runs)
-      const cookieString = document.cookie;
+      const cookieString = typeof document !== 'undefined' ? document.cookie : '';
       const cookiesArray = cookieString.split('; ');
       const uuidCookie = cookiesArray.find(row => row.startsWith('client-uuid='));
       if (uuidCookie) {
         clientUUID = uuidCookie.split('=')[1];
       }
     }
-    // If clientUUID is still not found after checking localStorage and cookies,
-    // ClientUuidProvider will generate it on mount. For this specific fetch, it might go without.
-    // Or, to ensure it's always present for client-side calls:
     if (!clientUUID) {
         clientUUID = generateUUID();
-        localStorage.setItem('client-uuid', clientUUID); // Store it for next time
+        try {
+          localStorage.setItem('client-uuid', clientUUID); 
+        } catch (e) {
+          console.warn("Could not set client-uuid in localStorage", e);
+        }
     }
   }
-  // On the server, clientUUID remains empty for this generic function.
-  // Specific server-side calls needing X-Client-UUID would need to handle it,
-  // or rely on standard cookie forwarding if the backend API supports it.
+  
 
   const url = `${API_BASE_URL}${endpoint}`;
   const defaultHeaders: HeadersInit = {
@@ -231,7 +230,7 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
       ...defaultHeaders,
       ...options.headers,
     },
-    next: { revalidate: 3600 } // Revalidate every hour, adjust as needed (Next.js specific)
+    // next: { revalidate: 3600 } // This is App Router specific, remove for Pages Router or use other caching strategies
   });
 
   if (!response.ok) {
@@ -322,7 +321,7 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
   } catch (error) {
     console.error(`Failed to fetch details for anime ${animeId}:`, error);
     return {
-      id: `error-detail-${animeId}`, // Keep animeId for identification if possible
+      id: `error-detail-${animeId}`, 
       title: `Anime no encontrado: ${animeId}`,
       description: "No se pudo cargar la descripción de este anime.",
       coverUrl: 'https://picsum.photos/seed/error-detail/400/600',
@@ -408,6 +407,3 @@ export async function getEpisodeDetails(animeSlug: string, episodeNumber: number
     return null;
   }
 }
-
-
-    
