@@ -1,7 +1,7 @@
 
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom'; // Import useState and useEffect
 import { Tv, Search, Star } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'; // Import useState and useEffect
 import { ThemeToggle } from '@/components/theme-toggle';
 
 // Import views (pages)
@@ -10,8 +10,29 @@ import DirectoryPage from '@/views/directorio/DirectoryPage';
 import AnimeDetailPage from '@/views/anime/AnimeDetailPage';
 import EpisodePlayerPage from '@/views/ver/EpisodePlayerPage';
 import FavoritesPage from '@/views/favoritos/FavoritesPage';
-import type React from 'react';
+import { useState, useEffect } from 'react'; // Import useState and useEffect
 
+const animeImages = [
+  '/assets/animebell_logo_name_prototype.png',
+  '/assets/animebell_logo.png',
+  '/assets/animebell_wifu_002.png',
+  '/assets/animebell_wifu_003.png',
+  '/assets/animebell_wifu_004.png',
+  '/assets/animebell_wifu_005.png',
+  '/assets/animebell_wifu_006.png',
+  '/assets/animebell_wifu_007.png',
+  '/assets/animebell_wifu_008.png',
+  '/assets/animebell_wifu_009.png',
+  '/assets/animebell_wifu_010.png',
+  '/assets/animebell_wifu_011.png',
+  '/assets/animebell_wifu_012.png',
+  '/assets/animebell_wifu_013.png',
+  '/assets/animebell_wifu_014.png',
+  '/assets/animebell_wifu_015.png',
+  '/assets/animebell_wifu_016.png',
+  '/assets/animebell_wifu_017.png',
+  '/assets/animebell_wifu_018.png',
+];
 
 export default function App() {
   const navigate = useNavigate();
@@ -23,12 +44,23 @@ export default function App() {
     navigate(`/directorio?q=${encodeURIComponent(query)}`);
   };
 
+  const [randomImage, setRandomImage] = useState('');
+
+  useEffect(() => {
+    // Select a random image on component mount
+    const randomIndex = Math.floor(Math.random() * animeImages.length);
+    setRandomImage(animeImages[randomIndex]);
+  }, []); // Empty dependency array ensures this runs only once
+
   return (
     <div className={`font-sans antialiased flex min-h-screen w-full flex-col bg-background text-foreground`}>
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
         <Link to="/" className="flex items-center gap-2 text-lg font-semibold md:text-base">
-          <Tv className="h-7 w-7 text-accent" />
-          <h1 className="text-xl font-bold">AniView</h1>
+          {randomImage && (
+            // Display the random image if it's loaded
+            <img src={randomImage} alt="Random Anime Image" className="h-8 w-8 object-cover rounded-full mr-2" /> // Added basic styling
+          )}
+          <h1 className="text-xl font-bold">AnimeBell</h1>
         </Link>
         <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 ml-auto">
           <Link to="/" className="text-foreground transition-colors hover:text-accent font-medium">
