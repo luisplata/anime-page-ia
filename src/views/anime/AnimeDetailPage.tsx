@@ -6,15 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaySquare, ListVideo, AlertTriangle, Loader2 } from 'lucide-react';
+import { PlaySquare, ListVideo, AlertTriangle, Loader2, BookmarkCheck } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
+import { useBookmarks } from '@/hooks/use-bookmarks'; // Import useBookmarks
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
+  const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks(); // Use bookmarks hook
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bookmarkedEpisodeNumber, setBookmarkedEpisodeNumber] = useState<number | null>(null);
 
   useEffect(() => {
     if (!animeId) {
@@ -30,6 +33,9 @@ export default function AnimeDetailPage() {
         const data = await getAnimeDetail(animeId);
         if (data) {
           setAnime(data);
+          if (!bookmarksLoading) {
+            setBookmarkedEpisodeNumber(getBookmarkForAnime(data.id));
+          }
         } else {
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
         }
@@ -41,7 +47,14 @@ export default function AnimeDetailPage() {
       }
     };
     fetchAnimeDetails();
-  }, [animeId]);
+  }, [animeId, bookmarksLoading, getBookmarkForAnime]);
+
+  useEffect(() => {
+    if (anime && !bookmarksLoading) {
+        setBookmarkedEpisodeNumber(getBookmarkForAnime(anime.id));
+    }
+  }, [anime, bookmarksLoading, getBookmarkForAnime]);
+
 
   if (isLoading) {
     return (
@@ -94,6 +107,23 @@ export default function AnimeDetailPage() {
                 />
               </div>
             </Card>
+             {bookmarkedEpisodeNumber && (
+                <Card className="mt-4 bg-accent/10 border-accent shadow-md rounded-lg">
+                    <CardContent className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-2 text-accent-foreground">
+                            <BookmarkCheck className="h-5 w-5" />
+                            <p className="text-sm font-medium">
+                                Continuar viendo: Episodio {bookmarkedEpisodeNumber}
+                            </p>
+                        </div>
+                         <Button variant="link" size="sm" asChild className="mt-1 text-accent-foreground hover:text-accent-foreground/80">
+                            <Link to={`/ver/${encodedAnimeId}/${bookmarkedEpisodeNumber}`}>
+                                Ir al episodio
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -121,22 +151,30 @@ export default function AnimeDetailPage() {
               <CardContent>
                 <ScrollArea className="h-[400px] pr-4">
                   <ul className="space-y-3">
-                    {anime.episodes.length > 0 ? anime.episodes.map((episode: Episode) => (
-                      <li key={episode.episodeNumber}>
-                        <Button variant="ghost" asChild className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/10 rounded-md transition-colors">
-                          <Link to={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center gap-3">
-                            <PlaySquare className="h-5 w-5 text-accent flex-shrink-0" />
-                            <div className="flex-grow">
-                              <span className="font-medium text-foreground block">
-                                Episodio {episode.episodeNumber}
-                                {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
-                              </span>
-                            </div>
-                          </Link>
-                        </Button>
-                        <Separator className="mt-3" />
-                      </li>
-                    )) : (
+                    {anime.episodes.length > 0 ? anime.episodes.map((episode: Episode) => {
+                      const isBookmarked = episode.episodeNumber === bookmarkedEpisodeNumber;
+                      return (
+                        <li key={episode.episodeNumber}>
+                          <Button 
+                            variant={isBookmarked ? "secondary" : "ghost"} 
+                            asChild 
+                            className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/10 rounded-md transition-colors"
+                          >
+                            <Link to={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 flex-grow min-w-0">
+                                <PlaySquare className="h-5 w-5 text-accent flex-shrink-0" />
+                                <span className="font-medium text-foreground block truncate">
+                                  Episodio {episode.episodeNumber}
+                                  {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
+                                </span>
+                              </div>
+                              {isBookmarked && <BookmarkCheck className="h-5 w-5 text-accent flex-shrink-0 ml-2" />}
+                            </Link>
+                          </Button>
+                          <Separator className="mt-3" />
+                        </li>
+                      );
+                    }) : (
                       <p className="text-muted-foreground text-center py-4">No hay episodios disponibles para este anime.</p>
                     )}
                   </ul>

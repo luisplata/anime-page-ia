@@ -6,17 +6,21 @@ import EpisodePlayerClient from '@/components/episode-player-client';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { Button } from '@/components/ui/button';
 import { Helmet } from 'react-helmet-async';
-import { AlertTriangle, ArrowLeft, ListVideo, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ListVideo, Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useBookmarks } from '@/hooks/use-bookmarks'; // Import useBookmarks
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
+  const { setBookmark, removeBookmark, isEpisodeBookmarked, isLoading: bookmarksLoading } = useBookmarks(); // Use bookmarks hook
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const episodeNumber = parseInt(episodeNumberStr || '', 10);
 
   useEffect(() => {
     if (!animeId || !episodeNumberStr) {
@@ -25,7 +29,6 @@ export default function EpisodePlayerPage() {
       return;
     }
 
-    const episodeNumber = parseInt(episodeNumberStr, 10);
     if (isNaN(episodeNumber)) {
       setError("Número de episodio inválido.");
       setIsLoading(false);
@@ -59,7 +62,17 @@ export default function EpisodePlayerPage() {
     };
 
     fetchEpisodeData();
-  }, [animeId, episodeNumberStr]);
+  }, [animeId, episodeNumberStr, episodeNumber]);
+
+  const handleBookmarkToggle = () => {
+    if (!animeId || isNaN(episodeNumber) || bookmarksLoading) return;
+
+    if (isEpisodeBookmarked(animeId, episodeNumber)) {
+      removeBookmark(animeId);
+    } else {
+      setBookmark(animeId, episodeNumber);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -107,6 +120,7 @@ export default function EpisodePlayerPage() {
   const coverUrl = anime.coverUrl || `https://picsum.photos/seed/${anime.id}/300/450`;
   const otherEpisodes = anime.episodes.filter(ep => ep.episodeNumber !== currentEpisode.episodeNumber);
   const encodedAnimeId = encodeURIComponent(anime.id);
+  const isCurrentBookmarked = isEpisodeBookmarked(anime.id, currentEpisode.episodeNumber);
 
   return (
     <>
@@ -123,9 +137,24 @@ export default function EpisodePlayerPage() {
           </Button>
         </div>
 
-        <header className="mb-8 text-center md:text-left">
+        <header className="mb-4 text-center md:text-left">
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">{fullEpisodeTitle}</h1>
         </header>
+        
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-center md:justify-start">
+            <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="default" />
+            <Button 
+              variant={isCurrentBookmarked ? "default" : "outline"} 
+              onClick={handleBookmarkToggle}
+              disabled={bookmarksLoading}
+              className="w-full sm:w-auto"
+            >
+              {bookmarksLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+               isCurrentBookmarked ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
+              {isCurrentBookmarked ? 'Marcado como actual' : 'Marcar como actual'}
+            </Button>
+          </div>
+
 
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 xl:col-span-9">
@@ -146,7 +175,7 @@ export default function EpisodePlayerPage() {
                   />
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-4">{anime.description}</p>
-                <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} className="w-full" size="default" />
+                {/* Favorite button moved up */}
               </CardContent>
             </Card>
             
@@ -160,16 +189,22 @@ export default function EpisodePlayerPage() {
                 <CardContent className="p-0">
                   <ScrollArea className="h-[300px] lg:h-[400px]">
                     <ul className="divide-y divide-border">
-                      {otherEpisodes.map((episode) => (
-                        <li key={episode.episodeNumber}>
-                          <Button variant="ghost" asChild className="w-full justify-start text-left h-auto py-2.5 px-4 hover:bg-accent/10 rounded-none text-xs sm:text-sm">
-                            <Link to={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="block truncate">
-                              Episodio {episode.episodeNumber}
-                              {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
-                            </Link>
-                          </Button>
-                        </li>
-                      ))}
+                      {otherEpisodes.map((episode) => {
+                        const isOtherBookmarked = isEpisodeBookmarked(anime.id, episode.episodeNumber);
+                        return (
+                          <li key={episode.episodeNumber}>
+                            <Button variant="ghost" asChild className="w-full justify-start text-left h-auto py-2.5 px-4 hover:bg-accent/10 rounded-none text-xs sm:text-sm">
+                              <Link to={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center justify-between w-full truncate">
+                                <span className="truncate">
+                                  Episodio {episode.episodeNumber}
+                                  {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
+                                </span>
+                                {isOtherBookmarked && <BookmarkCheck className="h-4 w-4 text-accent ml-2 flex-shrink-0" />}
+                              </Link>
+                            </Button>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </ScrollArea>
                 </CardContent>

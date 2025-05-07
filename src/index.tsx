@@ -6,6 +6,7 @@ import App from './App';
 import './globals.css'; // Ensure global styles are imported
 import { ThemeProvider } from '@/components/theme-provider';
 import { FavoritesProvider } from '@/hooks/use-favorites';
+import { BookmarksProvider } from '@/hooks/use-bookmarks'; // Import BookmarksProvider
 import ClientUuidProvider from '@/components/client-uuid-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { HelmetProvider } from 'react-helmet-async';
@@ -24,9 +25,11 @@ if (rootElement) {
             disableTransitionOnChange
           >
             <FavoritesProvider>
-              <ClientUuidProvider />
-              <App />
-              <Toaster />
+              <BookmarksProvider> {/* Add BookmarksProvider here */}
+                <ClientUuidProvider />
+                <App />
+                <Toaster />
+              </BookmarksProvider>
             </FavoritesProvider>
           </ThemeProvider>
         </BrowserRouter>

@@ -1,13 +1,13 @@
 
-'use client'; // This directive is less relevant for Vite, but kept if component is also used elsewhere.
+'use client'; 
 
-import { Link } from 'react-router-dom'; // Changed from next/link
-// import Image from 'next/image'; // Removed, use standard <img>
+import { Link } from 'react-router-dom'; 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { AnimeListing, NewEpisode } from '@/services/anime-api';
-import { PlayCircle, Heart } from 'lucide-react';
+import { PlayCircle, Heart, BookmarkCheck } from 'lucide-react'; // Added BookmarkCheck
 import { useFavorites } from '@/hooks/use-favorites';
+import { useBookmarks } from '@/hooks/use-bookmarks'; // Import useBookmarks
 import type React from 'react';
 
 interface AnimeCardProps {
@@ -17,24 +17,39 @@ interface AnimeCardProps {
 
 export function AnimeCard({ anime, type }: AnimeCardProps) {
   const { addFavorite, removeFavorite, isFavorite, isLoading: favoritesLoading } = useFavorites();
+  const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks(); // Use bookmarks hook
 
   const isEpisode = (anime: AnimeListing | NewEpisode): anime is NewEpisode => type === 'episode' && !!anime;
-  const animeIdForFav = isEpisode(anime) ? anime.animeId : anime.id;
-  const isCurrentlyFavorite = isFavorite(animeIdForFav);
+  const animeIdForFavAndBookmark = isEpisode(anime) ? anime.animeId : anime.id;
+  const isCurrentlyFavorite = isFavorite(animeIdForFavAndBookmark);
+  const bookmarkedEpisodeNumber = getBookmarkForAnime(animeIdForFavAndBookmark);
 
   const handleFavoriteToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault(); 
     e.stopPropagation();
     if (isCurrentlyFavorite) {
-      removeFavorite(animeIdForFav);
+      removeFavorite(animeIdForFavAndBookmark);
     } else {
-      addFavorite(animeIdForFav);
+      addFavorite(animeIdForFavAndBookmark);
     }
   };
   
   const idForLinksAndSeed = isEpisode(anime) ? anime.animeId : anime.id;
   const encodedAnimeId = encodeURIComponent(idForLinksAndSeed);
-  const href = isEpisode(anime) ? `/ver/${encodedAnimeId}/${anime.episodeNumber}` : `/anime/${encodedAnimeId}`;
+  
+  let href: string;
+  let actionText: string;
+
+  if (isEpisode(anime)) {
+    href = `/ver/${encodedAnimeId}/${anime.episodeNumber}`;
+    actionText = 'Ver Episodio';
+  } else if (bookmarkedEpisodeNumber) {
+    href = `/ver/${encodedAnimeId}/${bookmarkedEpisodeNumber}`;
+    actionText = `Continuar Ep. ${bookmarkedEpisodeNumber}`;
+  } else {
+    href = `/anime/${encodedAnimeId}`;
+    actionText = 'Ver Detalles';
+  }
   
   let title: string;
   if (isEpisode(anime)) {
@@ -52,20 +67,28 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
 
   return (
     <Card className="w-full max-w-sm overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg relative group/card">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-2 right-2 z-10 bg-background/70 hover:bg-background text-foreground rounded-full p-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity"
-        onClick={handleFavoriteToggle}
-        aria-label={isCurrentlyFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-        disabled={favoritesLoading}
-      >
-        <Heart className={`h-5 w-5 ${isCurrentlyFavorite ? 'text-red-500 fill-red-500' : 'text-muted-foreground'}`} />
-      </Button>
-      <Link to={href} className="block group"> {/* Changed to react-router-dom Link */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="bg-background/70 hover:bg-background text-foreground rounded-full p-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity"
+          onClick={handleFavoriteToggle}
+          aria-label={isCurrentlyFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+          disabled={favoritesLoading}
+        >
+          <Heart className={`h-5 w-5 ${isCurrentlyFavorite ? 'text-red-500 fill-red-500' : 'text-muted-foreground'}`} />
+        </Button>
+        {/* Display bookmark icon if the anime (not an episode card itself) is bookmarked */}
+        {!isEpisode(anime) && bookmarkedEpisodeNumber && !bookmarksLoading && (
+           <div className="bg-accent/80 hover:bg-accent text-accent-foreground rounded-full p-1.5 flex items-center justify-center transition-opacity"
+                title={`Continuar viendo Ep. ${bookmarkedEpisodeNumber}`}>
+            <BookmarkCheck className="h-5 w-5" />
+          </div>
+        )}
+      </div>
+      <Link to={href} className="block group">
         <CardHeader className="p-0">
           <div className="aspect-square relative">
-            {/* Replaced next/image with standard img */}
             <img
               src={finalThumbnailUrl}
               alt={imageAlt}
@@ -73,6 +96,13 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
               data-ai-hint={dataAiHint}
               loading={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5 ? "eager" : "lazy"}
             />
+             {/* Overlay for bookmarked series on listing cards */}
+            {!isEpisode(anime) && bookmarkedEpisodeNumber && (
+              <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white p-1.5 text-xs text-center font-medium">
+                <BookmarkCheck className="inline h-3 w-3 mr-1" />
+                Viendo Ep. {bookmarkedEpisodeNumber}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-3"> 
@@ -82,10 +112,10 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
         </CardContent>
       </Link>
       <CardFooter className="p-3 pt-0"> 
-        <Button asChild variant="outline" className="w-full group text-sm h-9"> 
-          <Link to={href} className="flex items-center justify-center gap-2"> {/* Changed to react-router-dom Link */}
-            <PlayCircle className="h-4 w-4 text-accent group-hover:text-accent-foreground transition-colors" />
-            <span>{isEpisode(anime) ? 'Ver Episodio' : 'Ver Detalles'}</span>
+        <Button asChild variant={!isEpisode(anime) && bookmarkedEpisodeNumber ? "default" : "outline"} className="w-full group text-sm h-9"> 
+          <Link to={href} className="flex items-center justify-center gap-2">
+            { !isEpisode(anime) && bookmarkedEpisodeNumber ? <BookmarkCheck className="h-4 w-4" /> : <PlayCircle className="h-4 w-4 text-accent group-hover:text-accent-foreground transition-colors" />}
+            <span>{actionText}</span>
           </Link>
         </Button>
       </CardFooter>
