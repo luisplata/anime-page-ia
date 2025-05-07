@@ -139,18 +139,20 @@ export interface NewEpisode { // Used for latest episodes feed ("Capítulos del 
 // --- API Fetcher ---
 async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options?.headers,
-  };
+
+  // Initialize Headers using the Headers class, incorporating any existing headers
+  const headers = new Headers(options?.headers);
+
+  // Set Content-Type, overriding if already present in options?.headers
+  headers.set('Content-Type', 'application/json');
 
   if (typeof window !== 'undefined') { // Check if running in browser
     const clientUUID = getCookie('client-uuid');
     if (clientUUID) {
-      headers['X-Client-UUID'] = clientUUID;
+      headers.set('X-Client-UUID', clientUUID);
     }
   }
-  
+
   const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {

@@ -18,8 +18,7 @@ interface AnimeCardProps {
 export function AnimeCard({ anime, type }: AnimeCardProps) {
   const { addFavorite, removeFavorite, isFavorite, isLoading: favoritesLoading } = useFavorites();
 
-  const isEpisode = (item: AnimeListing | NewEpisode): item is NewEpisode => type === 'episode';
-  
+  const isEpisode = (anime: AnimeListing | NewEpisode): anime is NewEpisode => type === 'episode' && !!anime;
   const animeIdForFav = isEpisode(anime) ? anime.animeId : anime.id;
   const isCurrentlyFavorite = isFavorite(animeIdForFav);
 

@@ -17,7 +17,6 @@ export default function DirectoryPage() {
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const searchQueryFromUrl = queryParams.get('q') || "";
 
-  const [allAnimes, setAllAnimes] = useState<AnimeListing[]>([]);
   const [displayedAnimes, setDisplayedAnimes] = useState<AnimeListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,18 +37,13 @@ export default function DirectoryPage() {
         if (currentSearch.trim()) {
           const results = await searchAnimes(currentSearch.trim());
           setDisplayedAnimes(results);
-          // We might not need allAnimes if we are searching
-          setAllAnimes([]); // Or keep it if there's a "clear search" functionality that shows all
         } else {
           const animes = await getAnimeDirectory();
-          setAllAnimes(animes);
           setDisplayedAnimes(animes);
         }
       } catch (err) {
         console.error("Error fetching animes:", err);
         setError("No se pudo cargar la información de los animes.");
-        setDisplayedAnimes([]);
-        setAllAnimes([]);
       } finally {
         setIsLoading(false);
       }

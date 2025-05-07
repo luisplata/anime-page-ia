@@ -1,6 +1,5 @@
 
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Tv, Search, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';

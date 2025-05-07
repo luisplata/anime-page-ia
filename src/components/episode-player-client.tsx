@@ -11,11 +11,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface EpisodePlayerClientProps {
   episode: Episode | null | undefined; // Allow null
-  animeTitle: string;
   fullEpisodeTitle: string;
 }
 
-export default function EpisodePlayerClient({ episode, animeTitle, fullEpisodeTitle }: EpisodePlayerClientProps) {
+export default function EpisodePlayerClient({ episode, fullEpisodeTitle }: EpisodePlayerClientProps) {
   const [selectedSource, setSelectedSource] = useState<EpisodeSource | null>(null);
   const [iframeKey, setIframeKey] = useState<string>(Date.now().toString());
 

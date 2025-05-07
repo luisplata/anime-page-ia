@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import EpisodePlayerClient from '@/components/episode-player-client';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
@@ -12,7 +12,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
-  const navigate = useNavigate();
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
@@ -130,7 +129,7 @@ export default function EpisodePlayerPage() {
 
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 xl:col-span-9">
-            <EpisodePlayerClient episode={currentEpisode} animeTitle={anime.title} fullEpisodeTitle={fullEpisodeTitle} />
+          <EpisodePlayerClient episode={currentEpisode} fullEpisodeTitle={fullEpisodeTitle} />
           </div>
           <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
             <Card className="shadow-lg rounded-lg overflow-hidden">
