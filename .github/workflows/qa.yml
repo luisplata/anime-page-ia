@@ -32,18 +32,18 @@ jobs:
       - name: ⚙️ Construir la aplicación
         run: npm run build
 
-      - name: 🔍 Verificar si la carpeta build existe (asumimos 'dist')
-        run: ls -la dist
+      - name: 🔍 Verificar si la carpeta build existe (asumimos '.next')
+        run: ls -la .next
 
       - name: 🗜️ Comprimir el build
         run: |
-          cd dist
+          cd .next
           zip -r ../build.zip .
 
       - name: Validate build.zip
         run: |
-          echo "Listing contents of dist directory:"
-          ls -la dist
+          echo "Listing contents of .next directory:"
+          ls -la .next
           echo "Checking build.zip:"
           ls -la build.zip || echo "build.zip not found!"
 
