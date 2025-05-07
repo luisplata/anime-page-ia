@@ -13,6 +13,7 @@ export default defineConfig({
   },
   server: {
     port: 9002, // Matches your previous Next.js dev port
+    host: true,
   },
   build: {
     outDir: 'dist', // Output directory for build files

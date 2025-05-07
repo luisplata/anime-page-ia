@@ -3,8 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import './app/globals.css'; // Adjusted path
-import 'geist/dist/geist-sans.css'; // Import Geist Sans CSS
+import './app/globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { FavoritesProvider } from '@/hooks/use-favorites';
 import ClientUuidProvider from '@/components/client-uuid-provider';

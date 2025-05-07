@@ -1,7 +1,7 @@
 
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 // import { GeistSans } from 'geist/font/sans'; // Removed: Font will be handled by global CSS import
-import { Toaster } from '@/components/ui/toaster';
+// import { Toaster } from '@/components/ui/toaster'; // Removed redundant import
 import { Button } from '@/components/ui/button';
 import { Tv, Search, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -86,3 +86,4 @@ export default function App() {
     </div>
   );
 }
+
