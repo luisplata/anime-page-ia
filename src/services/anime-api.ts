@@ -165,6 +165,16 @@ export interface NewEpisode {
 // --- Helper Functions ---
 
 /**
+ * Sanitizes a slug string by removing a leading '#' if present.
+ * @param slug The raw slug string from the API.
+ * @returns A cleaned slug string, or undefined if the input was undefined/null.
+ */
+function sanitizeApiSlug(slug: string | undefined | null): string | undefined {
+  if (!slug) return undefined;
+  return slug.startsWith('#') ? slug.substring(1) : slug;
+}
+
+/**
  * Fetches data from the API with common headers and error handling.
  * @param endpoint The API endpoint path (e.g., '/api/animes').
  * @param options Additional fetch options.
@@ -249,13 +259,18 @@ async function fetchFromApi<T>(endpoint: string, options: RequestInit = {}): Pro
 export async function getLatestEpisodes(): Promise<NewEpisode[]> {
   try {
     const response = await fetchFromApi<ApiPagedResponse<ApiEpisodeListItem>>('/api/episodes?page=1&per_page=20'); // Fetch first 20
-    return response.data.map((ep): NewEpisode => ({
-      animeId: ep.anime?.slug || `unknown-anime-${ep.anime?.id || ep.id}`,
-      animeTitle: ep.anime?.title || `Episodio ${ep.number} (Título Desconocido)`,
-      episodeNumber: ep.number,
-      thumbnailUrl: ep.anime?.image || `https://picsum.photos/seed/ep-${ep.anime?.id || ep.id}/300/300`,
-      streamingSources: ep.sources?.map(s => ({ name: s.name, url: s.url, quality: s.quality })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
-    }));
+    return response.data.map((ep): NewEpisode => {
+      const cleanSlug = sanitizeApiSlug(ep.anime?.slug);
+      const animeIdToUse = cleanSlug || `unknown-anime-${ep.anime?.id || ep.id}`;
+      
+      return {
+        animeId: animeIdToUse,
+        animeTitle: ep.anime?.title || `Episodio ${ep.number} (Título Desconocido)`,
+        episodeNumber: ep.number,
+        thumbnailUrl: ep.anime?.image || `https://picsum.photos/seed/ep-${ep.anime?.id || ep.id}/300/300`,
+        streamingSources: ep.sources?.map(s => ({ name: s.name, url: s.url, quality: s.quality })) || [{ name: "Default", url: 'https://example.com/placeholder-stream', quality: 'HD' }],
+      };
+    });
   } catch (error) {
     console.error("Failed to fetch latest episodes:", error);
     return Array.from({ length: 20 }, (_, i) => ({
@@ -276,11 +291,15 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
 export async function getAnimeDirectory(): Promise<AnimeListing[]> {
    try {
     const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=25'); // Fetch first 25
-    return response.data.map((anime): AnimeListing => ({
-      id: anime.slug || `unknown-anime-${anime.id}`,
-      title: anime.title || `Anime Desconocido ${anime.id}`,
-      thumbnailUrl: anime.image || `https://picsum.photos/seed/anime-${anime.id}/300/300`,
-    }));
+    return response.data.map((anime): AnimeListing => {
+      const cleanSlug = sanitizeApiSlug(anime.slug);
+      const idToUse = cleanSlug || `unknown-anime-${anime.id}`;
+      return {
+        id: idToUse,
+        title: anime.title || `Anime Desconocido ${anime.id}`,
+        thumbnailUrl: anime.image || `https://picsum.photos/seed/anime-${anime.id}/300/300`,
+      };
+    });
   } catch (error) {
     console.error("Failed to fetch anime directory:", error);
     return Array.from({ length: 20 }, (_, i) => ({
@@ -298,14 +317,20 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
  * @returns A promise that resolves to an AnimeDetail object.
  */
 export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
+  // The animeId parameter is already a slug from the URL, assume it's clean or
+  // if it had a leading #, it would have been part of the URL encoding/decoding.
+  // The critical part is ensuring the `id` field *returned* by this function is clean.
   try {
     const anime = await fetchFromApi<ApiAnimeDetailResponse>(`/api/anime/${animeId}`);
     const title = anime.title || `Anime Desconocido ${anime.id}`;
+    const cleanSlug = sanitizeApiSlug(anime.slug);
+    const idToUse = cleanSlug || animeId; // Fallback to animeId if API slug is missing/problematic
+
     return {
-      id: anime.slug || animeId,
+      id: idToUse,
       title: title,
       description: anime.description?.startsWith('/') ? `Description for ${title} (placeholder from API)` : (anime.description || "No description available."),
-      coverUrl: anime.image || `https://picsum.photos/seed/${animeId}/400/600`,
+      coverUrl: anime.image || `https://picsum.photos/seed/${idToUse}/400/600`,
       episodes: (anime.episodes || []).map((ep): Episode => ({
         episodeNumber: ep.number,
         streamingSources: ep.sources?.map(source => ({
@@ -340,11 +365,15 @@ export async function getAnimeDetail(animeId: string): Promise<AnimeDetail> {
 export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
   try {
     const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>('/api/animes?page=1&per_page=20'); // Fetch first 20
-    return response.data.map((anime): AnimeListing => ({
-      id: anime.slug || `unknown-anime-${anime.id}`,
-      title: anime.title || `Anime Desconocido ${anime.id}`,
-      thumbnailUrl: anime.image || `https://picsum.photos/seed/new-anime-${anime.id}/300/300`,
-    }));
+    return response.data.map((anime): AnimeListing => {
+      const cleanSlug = sanitizeApiSlug(anime.slug);
+      const idToUse = cleanSlug || `unknown-anime-${anime.id}`;
+      return {
+        id: idToUse,
+        title: anime.title || `Anime Desconocido ${anime.id}`,
+        thumbnailUrl: anime.image || `https://picsum.photos/seed/new-anime-${anime.id}/300/300`,
+      };
+    });
   } catch (error) {
     console.error("Failed to fetch latest added anime:", error);
     return Array.from({ length: 20 }, (_, i) => ({
@@ -367,11 +396,15 @@ export async function searchAnime(query: string): Promise<AnimeListing[]> {
   }
   try {
     const response = await fetchFromApi<ApiPagedResponse<ApiAnimeListItem>>(`/api/animes/search?q=${encodeURIComponent(query)}`);
-    return response.data.map((anime): AnimeListing => ({
-      id: anime.slug || `unknown-search-${anime.id}`,
-      title: anime.title || `Anime Desconocido ${anime.id}`,
-      thumbnailUrl: anime.image || `https://picsum.photos/seed/search-${anime.id}/300/300`,
-    }));
+    return response.data.map((anime): AnimeListing => {
+      const cleanSlug = sanitizeApiSlug(anime.slug);
+      const idToUse = cleanSlug || `unknown-search-${anime.id}`;
+      return {
+        id: idToUse,
+        title: anime.title || `Anime Desconocido ${anime.id}`,
+        thumbnailUrl: anime.image || `https://picsum.photos/seed/search-${anime.id}/300/300`,
+      };
+    });
   } catch (error) {
     console.error(`Failed to search for anime with query "${query}":`, error);
     return [];
@@ -389,6 +422,8 @@ export async function searchAnime(query: string): Promise<AnimeListing[]> {
  * @returns A promise that resolves to an Episode object or null if not found/error.
  */
 export async function getEpisodeDetails(animeSlug: string, episodeNumber: number): Promise<Episode | null> {
+  // animeSlug here comes from the URL, which should already be URL-decoded.
+  // We form the API path part by combining it with the episode number.
   const episodeIdPath = `${animeSlug}-${episodeNumber}`;
   try {
     const episodeData = await fetchFromApi<ApiEpisode>(`/api/episodes/${episodeIdPath}`);
