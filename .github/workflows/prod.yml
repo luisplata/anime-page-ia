@@ -4,7 +4,7 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-      - main  # Change this to your production branch if it's different
+      - main
 
 jobs:
 
@@ -25,25 +25,25 @@ jobs:
         run: |
           # Assumes your API environment variable is VITE_API_BASE_URL
           # If you have more variables, add them here
-          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
+          echo "NEXT_PUBLIC_ANIME_API_ENDPOINT=${{ secrets.VITE_API_BASE_URL }}" >> .env
           # Example: If you have another variable SECRET_KEY
-          # echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
 
       - name: ⚙️ Construir la aplicación
         run: npm run build
 
-      - name: 🔍 Verificar si la carpeta build existe (assuming 'dist')
-        run: ls -la dist
+      - name: 🔍 Verificar si la carpeta build existe (assuming '.next')
+        run: ls -la .next
 
       - name: 🗜️ Comprimir el build
         run: |
-          cd dist
+          cd .next
           zip -r ../build.zip .
 
       - name: Validate build.zip
         run: |
-          echo "Listing contents of dist directory:"
-          ls -la dist
+          echo "Listing contents of .next directory:"
+          ls -la .next
           echo "Checking build.zip:"
           ls -la build.zip || echo "build.zip not found!"
 
