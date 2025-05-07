@@ -1,28 +1,200 @@
-The current implementation already follows the flow you've described. Let me break down how it works:
 
-1.  **URL Parsing**: When a user navigates to a URL like `/ver/chotto-dake-ai-ga-omoi-dark-elf-ga-isekai-kara-oikaketekita/5`:
-    *   The Next.js router in `src/pages/ver/[animeId]/[episodeNumber].tsx` captures:
-        *   `animeId` as `"chotto-dake-ai-ga-omoi-dark-elf-ga-isekai-kara-oikaketekita"` (which is the slug).
-        *   `episodeNumber` as `"5"`.
+import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
+import EpisodePlayerClient from '@/components/episode-player-client';
+import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
+import { Button } from '@/components/ui/button';
+import Head from 'next/head';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import type { GetStaticProps, GetStaticPaths } from 'next';
+import { AlertTriangle, ArrowLeft, ListVideo } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
-2.  **Data Fetching in `getStaticProps`** (inside `src/pages/ver/[animeId]/[episodeNumber].tsx`):
-    *   The `animeId` (slug) is passed to the `getAnimeDetail(animeId)` function.
-    *   The `episodeNumber` string is parsed into an integer.
+interface EpisodePlayerPageProps {
+  anime: AnimeDetailType | null;
+  currentEpisode: Episode | null;
+  error?: string;
+}
 
-3.  **Fetching Anime Details (`getAnimeDetail` in `src/services/anime-api.ts`):**
-    *   The `getAnimeDetail` function takes the `animeId` (slug) and makes an API call to `{{endpoint}}/api/anime/${animeId}`. For your example, this would be `{{endpoint}}/api/anime/chotto-dake-ai-ga-omoi-dark-elf-ga-isekai-kara-oikaketekita`.
-    *   This API call is expected to return the details for that specific anime, including a list of all its episodes (as per the JSON structure you provided, where the root object has an `episodes` array).
+export default function EpisodePlayerPage({ anime, currentEpisode, error }: EpisodePlayerPageProps) {
+  const router = useRouter();
 
-4.  **Selecting the Specific Episode (back in `getStaticProps`):**
-    *   Once `getAnimeDetail` returns the `anime` object (which includes `anime.episodes`), the code finds the specific episode:
-        ```javascript
-        const currentEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber) || null;
-        ```
-        This line will look for an episode in the `anime.episodes` array where `episodeNumber` matches the number from the URL (e.g., 5).
+  if (router.isFallback) {
+    // This should ideally not be reached with fallback: false if paths are not pre-rendered
+    // and not found via getStaticProps, resulting in a 404.
+    // However, keeping it for robustness or if fallback behavior changes.
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <p className="text-xl text-muted-foreground">Cargando...</p>
+        </div>
+    );
+  }
 
-5.  **Rendering the Page**:
-    *   The fetched `anime` details and the `currentEpisode` data are then passed as props to the `EpisodePlayerPage` component for rendering.
+  if (error || !anime || !currentEpisode) {
+    const animeTitleFromError = anime?.title || 'Anime Desconocido';
+    // Attempt to get episode number from query if currentEpisode is null
+    const episodeNumberFromQuery = router.query.episodeNumber as string;
+    const episodeNumberForTitle = currentEpisode?.episodeNumber || (episodeNumberFromQuery ? parseInt(episodeNumberFromQuery, 10) : 'desconocido');
+    
+    const pageTitle = error ? 'Error al Cargar Episodio' : `Episodio ${episodeNumberForTitle} de ${animeTitleFromError} No Encontrado`;
 
-This flow matches your requirement: the page consults the endpoint using the anime slug (`chotto-dake-ai-ga-omoi-dark-elf-ga-isekai-kara-oikaketekita`) to get the anime data, and then it identifies and uses episode number 5 from that data.
+    return (
+      <>
+        <Head>
+          <title>{pageTitle} - AniView</title>
+        </Head>
+        <div className="container mx-auto px-4 py-8 text-center">
+          <AlertTriangle className="mx-auto h-16 w-16 text-destructive mb-4" />
+          <h1 className="mt-4 text-3xl font-bold text-destructive">{pageTitle}</h1>
+          <p className="mt-3 text-lg text-muted-foreground">
+            {error || `No se pudo encontrar el episodio ${episodeNumberForTitle} de ${animeTitleFromError}. Puede que no exista o haya ocurrido un error.`}
+          </p>
+          <div className="mt-8 space-x-4">
+            {anime && (
+              <Button asChild variant="outline">
+                <Link href={`/anime/${encodeURIComponent(anime.id)}`}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Volver a {anime.title}
+                </Link>
+              </Button>
+            )}
+            <Button asChild>
+              <Link href="/directorio">Explorar Directorio</Link>
+            </Button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
-No changes are required as the current implementation already adheres to this logic.
+  const fullEpisodeTitle = `${anime.title} - Episodio ${currentEpisode.episodeNumber}${currentEpisode.title && currentEpisode.title.toLowerCase() !== `episodio ${currentEpisode.episodeNumber}` && currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.episodeNumber}` ? `: ${currentEpisode.title}` : ''}`;
+  const coverUrl = anime.coverUrl || `https://picsum.photos/seed/${anime.id}/300/450`;
+  const otherEpisodes = anime.episodes.filter(ep => ep.episodeNumber !== currentEpisode.episodeNumber);
+  const encodedAnimeId = encodeURIComponent(anime.id);
+
+  return (
+    <>
+      <Head>
+        <title>{`${fullEpisodeTitle} - AniView`}</title>
+        <meta name="description" content={`Mira ${fullEpisodeTitle} en AniView. Streaming de anime online.`} />
+      </Head>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+            <Button variant="outline" asChild className="text-sm">
+                <Link href={`/anime/${encodedAnimeId}`}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Volver a la lista de episodios de {anime.title}
+                </Link>
+            </Button>
+        </div>
+
+        <header className="mb-8 text-center md:text-left">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">{fullEpisodeTitle}</h1>
+        </header>
+
+        <div className="grid lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 xl:col-span-9">
+                <EpisodePlayerClient episode={currentEpisode} animeTitle={anime.title} fullEpisodeTitle={fullEpisodeTitle} />
+            </div>
+            <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
+                <Card className="shadow-lg rounded-lg overflow-hidden">
+                    <CardHeader className="p-4">
+                        <CardTitle className="text-lg font-semibold">Sobre {anime.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                        <div className="aspect-[2/3] relative w-full max-w-[200px] mx-auto mb-3">
+                            <Image
+                                src={coverUrl}
+                                alt={`Portada de ${anime.title}`}
+                                fill
+                                className="object-cover rounded-md shadow-md"
+                                data-ai-hint="anime cover art"
+                            />
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-4">{anime.description}</p>
+                        <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} className="w-full" size="default" />
+                    </CardContent>
+                </Card>
+                
+                {otherEpisodes.length > 0 && (
+                    <Card className="shadow-lg rounded-lg">
+                        <CardHeader className="p-4">
+                            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                                <ListVideo className="h-5 w-5 text-accent"/> Otros Episodios
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <ScrollArea className="h-[300px] lg:h-[400px]">
+                                <ul className="divide-y divide-border">
+                                    {otherEpisodes.map((episode) => (
+                                    <li key={episode.episodeNumber}>
+                                        <Button variant="ghost" asChild className="w-full justify-start text-left h-auto py-2.5 px-4 hover:bg-accent/10 rounded-none text-xs sm:text-sm">
+                                        <Link href={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="block truncate">
+                                            Episodio {episode.episodeNumber}
+                                            {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
+                                        </Link>
+                                        </Button>
+                                    </li>
+                                    ))}
+                                </ul>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                )}
+            </aside>
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [], // No paths are pre-rendered at build time.
+    fallback: false, // Requests for paths not generated at build time will result in a 404.
+  };
+};
+
+export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (context) => {
+  const animeId = context.params?.animeId as string;
+  const episodeNumberStr = context.params?.episodeNumber as string;
+
+  if (!animeId || !episodeNumberStr) {
+    return { props: { anime: null, currentEpisode: null, error: "ID de anime o número de episodio no proporcionado." } };
+  }
+
+  const episodeNumber = parseInt(episodeNumberStr, 10);
+  if (isNaN(episodeNumber)) {
+    return { props: { anime: null, currentEpisode: null, error: "Número de episodio inválido." } };
+  }
+
+  try {
+    const anime = await getAnimeDetail(animeId);
+
+    if (!anime || anime.id.startsWith('error-detail-')) { 
+      // This means getAnimeDetail returned its error structure
+      return { props: { anime: null, currentEpisode: null, error: anime?.title || `No se encontró el anime con ID: ${animeId}` } };
+    }
+
+    const currentEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber) || null;
+
+    if (!currentEpisode) {
+      return { props: { anime, currentEpisode: null, error: `Episodio ${episodeNumber} no encontrado para ${anime.title}.` } };
+    }
+
+    return {
+      props: {
+        anime,
+        currentEpisode,
+      },
+      // Removed revalidate for static export compatibility
+    };
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "Error desconocido";
+    console.error(`Failed to fetch episode details in getStaticProps for ${animeId}/${episodeNumber}:`, error);
+    return { props: { anime: null, currentEpisode: null, error: `Error al cargar la información del episodio: ${error}` } };
+  }
+};
+
