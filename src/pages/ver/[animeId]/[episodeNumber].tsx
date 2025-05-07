@@ -13,6 +13,11 @@ import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
+// Define a type for the list of anime items in getStaticPaths
+interface AnimeListItem {
+  id: string;
+}
+
 interface EpisodePlayerPageProps {
   anime: AnimeDetailType | null;
   currentEpisode: Episode | null;
@@ -151,8 +156,28 @@ export default function EpisodePlayerPage({ anime, currentEpisode, error }: Epis
 
 
 export const getStaticPaths: GetStaticPaths = async () => {
+  // Fetch all anime IDs. This assumes getAnimeList returns a list of anime objects with 'id'.
+  // If you have a different way to get all anime IDs, replace getAnimeList() with that function.
+  // TODO: Replace this placeholder with your actual function to get all anime IDs
+  const animeList: AnimeListItem[] = []; // Example: await getAllAnimeIds(); 
+  const paths = [];
+
+  // For each anime, fetch its details to get the episodes and generate paths
+  for (const anime of animeList) {
+    const animeDetail = await getAnimeDetail(anime.id);
+    if (animeDetail && animeDetail.episodes && !animeDetail.id.startsWith('error-detail-')) {
+      for (const episode of animeDetail.episodes) { // Assuming episodes are directly in animeDetail
+        paths.push({
+          params: {
+            animeId: anime.id,
+            episodeNumber: episode.episodeNumber.toString(),
+          },
+        });
+      }
+    }
+  }
   return {
-    paths: [], // No paths are pre-rendered at build time.
+    paths,
     fallback: false, // Requests for paths not generated at build time will result in a 404.
   };
 };
