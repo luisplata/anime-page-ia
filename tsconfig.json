@@ -1,27 +1,31 @@
+
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2020", // Updated target
+    "useDefineForClassFields": true, // Recommended for Vite
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "allowJs": true, // Keep if you have JS files
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "bundler", // Changed from node to bundler
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "jsx": "react-jsx", // Changed from preserve to react-jsx
+    "incremental": true, // Can be removed if not needed
+    // "plugins": [ // Next.js plugin removed
+    //   {
+    //     "name": "next"
+    //   }
+    // ],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src", "vite.config.ts"], // Ensure vite.config.ts is included
+  "exclude": ["node_modules", "dist"], // Exclude build output
+  "references": [{ "path": "./tsconfig.node.json" }] // Optional: for Vite config type checking
 }
+

@@ -1,28 +1,63 @@
 
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
-import Image from 'next/image';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaySquare, ListVideo, AlertTriangle } from 'lucide-react';
-import Head from 'next/head';
+import { PlaySquare, ListVideo, AlertTriangle, Loader2 } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
-import type { GetStaticProps, GetStaticPaths } from 'next';
 
-interface AnimeDetailPageProps {
-  anime: AnimeDetailType | null;
-  error?: string; // Keep error for explicit error messages
-}
+export default function AnimeDetailPage() {
+  const { animeId } = useParams<{ animeId: string }>();
+  const [anime, setAnime] = useState<AnimeDetailType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) {
+  useEffect(() => {
+    if (!animeId) {
+      setError("ID de anime no proporcionado.");
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchAnimeDetails = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await getAnimeDetail(animeId);
+        if (data) {
+          setAnime(data);
+        } else {
+          setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
+        }
+      } catch (err) {
+        console.error("Error fetching anime details:", err);
+        setError("Error al cargar la información del anime.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAnimeDetails();
+  }, [animeId]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
+        <p className="mt-4 text-lg text-muted-foreground">Cargando detalles del anime...</p>
+      </div>
+    );
+  }
+
   if (error || !anime) {
     return (
       <>
-        <Head>
+        <Helmet>
           <title>Error - AniView</title>
-        </Head>
+        </Helmet>
         <div className="container mx-auto px-4 py-8 text-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
           <h1 className="mt-4 text-3xl font-bold text-destructive">Error al cargar el Anime</h1>
@@ -30,7 +65,7 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
             {error || "No se pudo cargar la información del anime. Por favor, inténtalo de nuevo más tarde o verifica que el ID sea correcto."}
           </p>
           <Button asChild className="mt-6">
-            <Link href="/directorio">Volver al Directorio</Link>
+            <Link to="/directorio">Volver al Directorio</Link>
           </Button>
         </div>
       </>
@@ -42,22 +77,20 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
 
   return (
     <>
-      <Head>
+      <Helmet>
         <title>{`${anime.title || 'Anime Desconocido'} - AniView`}</title>
         <meta name="description" content={anime.description ? anime.description.substring(0, 160) : `Detalles sobre ${anime.title || 'este anime'}.`} />
-      </Head>
+      </Helmet>
       <div className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-3 gap-8 items-start">
           <div className="md:col-span-1">
             <Card className="overflow-hidden shadow-xl rounded-lg">
               <div className="aspect-[2/3] relative">
-                <Image
+                <img
                   src={coverUrl}
                   alt={`Portada de ${anime.title}`}
-                  fill
-                  className="object-cover"
+                  className="object-cover w-full h-full"
                   data-ai-hint="anime cover art"
-                  priority
                 />
               </div>
             </Card>
@@ -91,7 +124,7 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
                     {anime.episodes.length > 0 ? anime.episodes.map((episode: Episode) => (
                       <li key={episode.episodeNumber}>
                         <Button variant="ghost" asChild className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/10 rounded-md transition-colors">
-                          <Link href={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center gap-3">
+                          <Link to={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center gap-3">
                             <PlaySquare className="h-5 w-5 text-accent flex-shrink-0" />
                             <div className="flex-grow">
                               <span className="font-medium text-foreground block">
@@ -116,33 +149,3 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
     </>
   );
 }
-
-export const getStaticPaths: GetStaticPaths = async () => {
-  return {
-    paths: [], 
-    fallback: 'blocking', 
-  };
-};
-
-export const getStaticProps: GetStaticProps<AnimeDetailPageProps> = async (context) => {
-  const id = context.params?.id as string; 
-
-  if (!id) {
-    return { props: { anime: null, error: "ID de anime no proporcionado." }, notFound: true };
-  }
-
-  try {
-    const anime = await getAnimeDetail(id); 
-     if (!anime) { 
-      return { props: { anime: null, error: `No se encontró el anime con ID: ${id} o hubo un error al procesarlo.` }, notFound: true };
-    }
-    return {
-      props: {
-        anime,
-      },
-    };
-  } catch (error) { // This catch might be redundant if getAnimeDetail handles its own errors and returns null
-    console.error("Error in getStaticProps for anime detail page:", error);
-    return { props: { anime: null, error: "Error al cargar la información del anime." }, notFound: true };
-  }
-};

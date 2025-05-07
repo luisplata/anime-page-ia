@@ -1,47 +1,68 @@
 
-import { getAnimeDirectory, type AnimeListing } from '@/services/anime-api';
+import { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { getAnimeDirectory, type AnimeListing, searchAnimes } from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Filter, Search, ListX } from 'lucide-react';
+import { Filter, Search, ListX, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import Head from 'next/head';
-import type { GetStaticProps } from 'next';
-import { useRouter } from 'next/router';
-import { useState, useEffect, useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
+import type React from 'react';
 
-interface DirectoryPageProps {
-  allAnimes: AnimeListing[];
-}
+export default function DirectoryPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const searchQueryFromUrl = queryParams.get('q') || "";
 
-export default function DirectoryPage({ allAnimes }: DirectoryPageProps) {
-  const router = useRouter();
-  const searchQueryFromUrl = (router.query.q as string) || "";
-
+  const [allAnimes, setAllAnimes] = useState<AnimeListing[]>([]);
+  const [displayedAnimes, setDisplayedAnimes] = useState<AnimeListing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const [pageTitle, setPageTitle] = useState("Directorio de Anime");
   const [pageDescription, setPageDescription] = useState("Explora nuestra vasta colección de series de anime.");
   const [currentSearch, setCurrentSearch] = useState(searchQueryFromUrl);
 
-  // Update internal search state if URL query changes
   useEffect(() => {
     setCurrentSearch(searchQueryFromUrl);
   }, [searchQueryFromUrl]);
 
-  const displayedAnimes = useMemo(() => {
-    if (!currentSearch.trim()) {
-      return allAnimes;
-    }
-    return allAnimes.filter(anime =>
-      anime.title.toLowerCase().includes(currentSearch.toLowerCase())
-    );
-  }, [allAnimes, currentSearch]);
+  useEffect(() => {
+    const fetchAnimes = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        if (currentSearch.trim()) {
+          const results = await searchAnimes(currentSearch.trim());
+          setDisplayedAnimes(results);
+          // We might not need allAnimes if we are searching
+          setAllAnimes([]); // Or keep it if there's a "clear search" functionality that shows all
+        } else {
+          const animes = await getAnimeDirectory();
+          setAllAnimes(animes);
+          setDisplayedAnimes(animes);
+        }
+      } catch (err) {
+        console.error("Error fetching animes:", err);
+        setError("No se pudo cargar la información de los animes.");
+        setDisplayedAnimes([]);
+        setAllAnimes([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAnimes();
+  }, [currentSearch]);
 
   useEffect(() => {
     if (currentSearch.trim()) {
       setPageTitle(`Resultados para "${currentSearch}"`);
       setPageDescription(`Mostrando resultados de búsqueda para "${currentSearch}".`);
     } else {
-      setPageTitle("Directorio de Anime");
+      setPageTitle("Directorio de Anime - AniView");
       setPageDescription("Explora nuestra vasta colección de series de anime.");
     }
   }, [currentSearch]);
@@ -49,19 +70,18 @@ export default function DirectoryPage({ allAnimes }: DirectoryPageProps) {
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const query = (e.target as HTMLFormElement).q.value;
-    router.push(`/directorio?q=${encodeURIComponent(query)}`);
+    navigate(`/directorio?q=${encodeURIComponent(query)}`);
   };
 
   return (
     <>
-      <Head>
-        <title>{pageTitle} - AniView Directorio</title>
+      <Helmet>
+        <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
-      </Head>
+      </Helmet>
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            {/* This h1 can also be dynamic based on search, or stay static */}
             {currentSearch.trim() ? `Buscando: "${currentSearch}"` : "Directorio de Anime"}
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
@@ -80,8 +100,8 @@ export default function DirectoryPage({ allAnimes }: DirectoryPageProps) {
               name="q"
               placeholder="Buscar en el directorio..."
               className="pl-10 w-full"
-              defaultValue={currentSearch} // Controlled by router query effectively
-              key={currentSearch} // Re-render input if query changes from external link
+              defaultValue={currentSearch}
+              key={currentSearch} 
             />
           </div>
           <Button type="submit" className="flex items-center gap-2">
@@ -95,7 +115,11 @@ export default function DirectoryPage({ allAnimes }: DirectoryPageProps) {
         </form>
         <Separator className="my-6" />
 
-        {displayedAnimes.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>
+        ) : error ? (
+          <div className="text-center py-12 text-destructive">{error}</div>
+        ) : displayedAnimes.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {displayedAnimes.map((anime) => (
               <AnimeCard key={anime.id} anime={anime} type="listing" />
@@ -116,13 +140,3 @@ export default function DirectoryPage({ allAnimes }: DirectoryPageProps) {
     </>
   );
 }
-
-export const getStaticProps: GetStaticProps<DirectoryPageProps> = async () => {
-  const animes = await getAnimeDirectory(); // Fetches all animes for client-side filtering
-  
-  return {
-    props: {
-      allAnimes: animes,
-    },
-  };
-};

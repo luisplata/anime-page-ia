@@ -1,15 +1,13 @@
-'use client'; 
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useFavorites } from '@/hooks/use-favorites';
 import { getAnimeDetail, type AnimeDetail, type AnimeListing } from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Button } from '@/components/ui/button';
 import { Star, Loader2, Frown } from 'lucide-react';
-import Link from 'next/link';
-import Head from 'next/head';
+import { Helmet } from 'react-helmet-async';
 
-// Helper function to transform AnimeDetail to AnimeListing for AnimeCard
 function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
   return {
     id: detail.id,
@@ -20,9 +18,9 @@ function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
 
 export default function FavoritesPage() {
   const { favoriteIds, isLoading: favoritesLoadingHook } = useFavorites();
-  const [favoriteAnimes, setFavoriteAnimes = useState<AnimeListing[]>([]);
-  const [isLoading, setIsLoading = useState(true);
-  const [error, setError = useState<string | null>(null);
+  const [favoriteAnimes, setFavoriteAnimes] = useState<AnimeListing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (favoritesLoadingHook) {
@@ -40,20 +38,16 @@ export default function FavoritesPage() {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch all details
         const animeDetailsPromises = favoriteIds.map(id => getAnimeDetail(id));
         const results = await Promise.allSettled(animeDetailsPromises);
         
         const successfullyFetchedAnimes: AnimeListing[] = [];
         results.forEach(result => {
           if (result.status === 'fulfilled' && result.value) {
-            // result.value is AnimeDetail | null
-            // Ensure it's a valid AnimeDetail object (not null)
             const animeDetail = result.value;
-             if (animeDetail) { // Check if animeDetail is not null
+             if (animeDetail) {
                 successfullyFetchedAnimes.push(transformDetailToAnimeListing(animeDetail));
              } else {
-                // Anime detail was null, means it couldn't be fetched or parsed correctly
                 console.warn(`Skipping favorite: Anime details not found or error for an ID in favorites list.`);
              }
           } else if (result.status === 'rejected') {
@@ -74,10 +68,10 @@ export default function FavoritesPage() {
 
   return (
     <>
-      <Head>
+      <Helmet>
         <title>Mis Favoritos - AniView</title>
         <meta name="description" content="Ve y gestiona tus animes favoritos." />
-      </Head>
+      </Helmet>
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8 flex items-center gap-3">
           <Star className="h-8 w-8 text-accent" />
@@ -96,7 +90,7 @@ export default function FavoritesPage() {
             <Frown className="h-16 w-16 text-destructive mx-auto mb-4" />
             <p className="text-xl text-destructive">{error}</p>
             <Button asChild className="mt-6">
-              <Link href="/">Volver al inicio</Link>
+              <Link to="/">Volver al inicio</Link>
             </Button>
           </div>
         ) : favoriteAnimes.length > 0 ? (
@@ -112,7 +106,7 @@ export default function FavoritesPage() {
               Aún no has agregado animes a tus favoritos.
             </p>
             <p className="mt-2 text-muted-foreground">
-              Explora el <Link href="/directorio" className="text-accent hover:underline">directorio</Link> y marca tus series preferidas.
+              Explora el <Link to="/directorio" className="text-accent hover:underline">directorio</Link> y marca tus series preferidas.
             </p>
           </div>
         )}

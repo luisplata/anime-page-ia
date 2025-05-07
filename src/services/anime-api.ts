@@ -1,3 +1,4 @@
+
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -15,7 +16,8 @@ function getCookie(name: string): string | null {
   return null;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT || 'https://backend.animebell.peryloth.com';
+// Vite uses import.meta.env for environment variables
+const API_BASE_URL = import.meta.env.VITE_ANIME_API_ENDPOINT || 'https://backend.animebell.peryloth.com';
 
 // --- Interfaces for API responses ---
 
@@ -70,7 +72,7 @@ interface ApiAnimesDirectoryResponse { // For /api/animes
   last_page?: number;
 }
 interface ApiAnimesSearchResponse { // For /api/animes/search -> data object
-  data: ApiAnimeListItem[];
+  data: ApiAnimeListItem[]; // The actual search results are in a nested 'data' array
   current_page?: number;
   last_page?: number;
 }
@@ -170,15 +172,19 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
   if (contentType && contentType.indexOf("application/json") !== -1) {
     const text = await response.text();
     if (text === "") {
-      // For list-like responses, an empty array is a safe default
-      // For detail-like responses, null might be better, or throw error.
-      // Given current usage, we assume T might have a 'data' field.
-      if (endpoint.includes('/api/anime/')) { // Detail endpoint
-          // Throw an error or return null, as {data:[]} isn't valid for AnimeDetailResponse
+      if (endpoint.includes('/api/anime/')) { 
           console.warn(`Received empty JSON response for detail endpoint ${url}. Returning null-like structure.`);
-          return null as T; // This will need careful handling in calling functions
+          return null as T; 
       }
-      return { data: [] } as T; // Default for list endpoints
+      // Check if T is expected to be an object with a 'data' array (like paginated responses)
+      // This is a heuristic. A more robust solution might involve type guards or specific parsers per endpoint.
+      if ( (endpoint.includes('/api/episodes') || endpoint.includes('/api/animes')) && !endpoint.includes('/api/animes/search') ) {
+        return { data: [] } as T; 
+      }
+      if (endpoint.includes('/api/animes/search')){ // Search endpoint has data nested one level deeper
+        return { data: [] } as T;
+      }
+      return {} as T; // For other non-list cases where empty JSON might be valid empty object
     }
     try {
         return JSON.parse(text) as T;
@@ -187,13 +193,13 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
         throw new Error(`Failed to parse JSON response from API for ${url}`);
     }
   }
-  // If content type is not JSON, but response was OK. This is unusual.
   console.warn(`Received non-JSON 200 OK response for ${url}. Content-Type: ${contentType}`);
-  // For detail endpoint, null might be better.
   if (endpoint.includes('/api/anime/')) {
       return null as T;
   }
-  return { data: [] } as T; // Default for list endpoints
+  // For list-like non-JSON responses (highly unlikely for this API structure), return an empty data array.
+  // Consider if this default is appropriate or if an error should be thrown.
+  return { data: [] } as T; 
 }
 
 
@@ -212,7 +218,7 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
           !ep.anime ||
           typeof ep.anime.slug !== 'string' ||
           typeof ep.anime.title !== 'string' ||
-          typeof ep.anime.image !== 'string' || // Presence checked, content below
+          typeof ep.anime.image !== 'string' || 
           typeof ep.number !== 'number'
         ) {
           console.warn('Skipping episode due to incomplete/invalid anime data from API:', ep);
@@ -247,7 +253,7 @@ export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
         if (
           typeof anime.slug !== 'string' ||
           typeof anime.title !== 'string' ||
-          typeof anime.image !== 'string' // Presence checked, content below
+          typeof anime.image !== 'string' 
         ) {
           console.warn('Skipping anime listing due to incomplete/invalid data from API:', anime);
           return null;
@@ -270,8 +276,6 @@ export async function getLatestAddedAnime(): Promise<AnimeListing[]> {
 
 export async function getAnimeDirectory(): Promise<AnimeListing[]> {
   try {
-    // Fetching more items for a better directory experience, up to 100.
-    // The API might have its own upper limit per page.
     const response = await fetchFromApi<ApiAnimesDirectoryResponse>('/api/animes?per_page=100'); 
     if (!response || !Array.isArray(response.data)) {
         console.warn('Received empty or invalid data array from /api/animes for directory. Response:', response);
@@ -282,7 +286,7 @@ export async function getAnimeDirectory(): Promise<AnimeListing[]> {
         if (
           typeof anime.slug !== 'string' ||
           typeof anime.title !== 'string' ||
-          typeof anime.image !== 'string' // Presence checked, content below
+          typeof anime.image !== 'string' 
         ) {
           console.warn('Skipping anime listing (directory) due to incomplete/invalid data from API:', anime);
           return null;
@@ -327,7 +331,7 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
           name: source.name || 'Fuente Desconocida',
           url: source.url || 'https://example.com/placeholder-stream',
           quality: source.quality,
-        })).filter(s => s.url && s.url !== 'https://example.com/placeholder-stream'), // Filter out invalid sources
+        })).filter(s => s.url && s.url !== 'https://example.com/placeholder-stream'),
         title: ep.title || `Episodio ${ep.number}`,
       })).sort((a, b) => a.episodeNumber - b.episodeNumber),
     };
@@ -340,17 +344,18 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
 export async function searchAnimes(query: string): Promise<AnimeListing[]> {
   if (!query.trim()) return [];
   try {
+    // The search response has the anime list under a 'data' property
     const response = await fetchFromApi<ApiAnimesSearchResponse>(`/api/animes/search?q=${encodeURIComponent(query)}`);
-     if (!response || !Array.isArray(response.data)) {
+     if (!response || !Array.isArray(response.data)) { // Check response.data which contains the array
         console.warn(`Received empty or invalid data array from /api/animes/search for query: ${query}. Response:`, response);
         return [];
     }
-    return response.data
+    return response.data // Access the nested 'data' array
       .map((anime): AnimeListing | null => {
          if (
           typeof anime.slug !== 'string' ||
           typeof anime.title !== 'string' ||
-          typeof anime.image !== 'string' // Presence checked, content below
+          typeof anime.image !== 'string' 
         ) {
           console.warn('Skipping anime listing (search) due to incomplete/invalid data from API:', anime);
           return null;

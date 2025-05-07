@@ -1,21 +1,51 @@
 
+import { useState, useEffect } from 'react';
 import { getLatestEpisodes, getLatestAddedAnime, type NewEpisode, type AnimeListing } from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Separator } from '@/components/ui/separator';
-import Head from 'next/head';
+import { Helmet } from 'react-helmet-async';
+import { Loader2 } from 'lucide-react';
 
-interface HomePageProps {
-  latestEpisodes: NewEpisode[];
-  latestAddedAnime: AnimeListing[];
-}
+export default function HomePage() {
+  const [latestEpisodes, setLatestEpisodes] = useState<NewEpisode[]>([]);
+  const [latestAddedAnime, setLatestAddedAnime] = useState<AnimeListing[]>([]);
+  const [loadingEpisodes, setLoadingEpisodes] = useState(true);
+  const [loadingAddedAnime, setLoadingAddedAnime] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default function HomePage({ latestEpisodes, latestAddedAnime }: HomePageProps) {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoadingEpisodes(true);
+        const episodes = await getLatestEpisodes();
+        setLatestEpisodes(episodes);
+      } catch (err) {
+        console.error("Error fetching latest episodes:", err);
+        setError("Failed to load latest episodes.");
+      } finally {
+        setLoadingEpisodes(false);
+      }
+
+      try {
+        setLoadingAddedAnime(true);
+        const addedAnime = await getLatestAddedAnime();
+        setLatestAddedAnime(addedAnime);
+      } catch (err) {
+        console.error("Error fetching latest added anime:", err);
+        setError(prevError => prevError ? `${prevError} Also failed to load latest added anime.` : "Failed to load latest added anime.");
+      } finally {
+        setLoadingAddedAnime(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <>
-      <Head>
+      <Helmet>
         <title>AniView - Inicio</title>
         <meta name="description" content="Mira los últimos episodios de anime y descubre nuevas series." />
-      </Head>
+      </Helmet>
       <div className="container mx-auto px-4 py-8">
         <section className="mb-12">
           <header className="mb-6">
@@ -26,7 +56,11 @@ export default function HomePage({ latestEpisodes, latestAddedAnime }: HomePageP
               Los últimos episodios de tus animes favoritos, recién salidos del horno.
             </p>
           </header>
-          {latestEpisodes.length > 0 ? (
+          {loadingEpisodes ? (
+            <div className="flex justify-center items-center py-12"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>
+          ) : error && latestEpisodes.length === 0 ? (
+             <div className="text-center py-12 text-destructive">{error.includes("episodes") || error.includes("Failed to load") ? error : "Error cargando episodios."}</div>
+          ) : latestEpisodes.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {latestEpisodes.map((episode) => (
                 <AnimeCard key={`${episode.animeId}-${episode.episodeNumber}`} anime={episode} type="episode" />
@@ -55,7 +89,11 @@ export default function HomePage({ latestEpisodes, latestAddedAnime }: HomePageP
               Descubre las series más recientes añadidas a nuestro catálogo.
             </p>
           </header>
-          {latestAddedAnime.length > 0 ? (
+          {loadingAddedAnime ? (
+             <div className="flex justify-center items-center py-12"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>
+          ) : error && latestAddedAnime.length === 0 ? (
+             <div className="text-center py-12 text-destructive">{error.includes("added anime") || error.includes("Failed to load") ? error : "Error cargando últimos animes."}</div>
+          ) : latestAddedAnime.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {latestAddedAnime.map((anime) => (
                 <AnimeCard key={anime.id} anime={anime} type="listing" />
@@ -75,29 +113,4 @@ export default function HomePage({ latestEpisodes, latestAddedAnime }: HomePageP
       </div>
     </>
   );
-}
-
-export async function getStaticProps() {
-  let latestEpisodes: NewEpisode[] = [];
-  let latestAddedAnime: AnimeListing[] = [];
-
-  try {
- latestEpisodes = await getLatestEpisodes();
-  } catch (error) {
-    console.error("Error fetching latest episodes for homepage:", error);
-  }
-
-  try {
- latestAddedAnime = await getLatestAddedAnime();
-  } catch (error) {
-    console.error("Error fetching latest added anime for homepage:", error);
-  }
-
-  return {
-    props: {
-      latestEpisodes,
-      latestAddedAnime,
-    },
-    // revalidate: 3600, // Removed for static export compatibility
-  };
 }

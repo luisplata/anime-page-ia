@@ -1,8 +1,9 @@
- "use client"
+
+ "use client" // Less relevant for Vite, but can indicate client-side logic
 
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes" // This will be installed
+import { useTheme } from "next-themes" // This should still work if ThemeProvider is set up correctly
 
 import { Button } from "@/components/ui/button"
 import {
@@ -14,13 +15,12 @@ import {
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme()
-
-  // Ensure theme is loaded on client before rendering to avoid hydration mismatch
   const [mounted, setMounted] = React.useState(false)
+
   React.useEffect(() => setMounted(true), [])
 
   if (!mounted) {
-    // Render a placeholder or null during server rendering and hydration
+    // Render a placeholder or null to avoid hydration mismatch if used in SSR (less of an issue with Vite CSR)
     return <Button variant="outline" size="icon" className="w-9 h-9" disabled><Sun className="h-[1.2rem] w-[1.2rem]"/></Button>;
   }
 

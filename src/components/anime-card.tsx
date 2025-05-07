@@ -1,7 +1,8 @@
-'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
+'use client'; // This directive is less relevant for Vite, but kept if component is also used elsewhere.
+
+import { Link } from 'react-router-dom'; // Changed from next/link
+// import Image from 'next/image'; // Removed, use standard <img>
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { AnimeListing, NewEpisode } from '@/services/anime-api';
@@ -43,8 +44,6 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
     title = anime.title;
   }
   
-  // Service layer should provide a valid thumbnailUrl or a picsum placeholder.
-  // This is an additional safety net in the component.
   const finalThumbnailUrl = anime.thumbnailUrl && anime.thumbnailUrl.trim() !== ''
     ? anime.thumbnailUrl
     : `https://picsum.photos/seed/${idForLinksAndSeed || 'default'}/300/300`;
@@ -64,17 +63,16 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
       >
         <Heart className={`h-5 w-5 ${isCurrentlyFavorite ? 'text-red-500 fill-red-500' : 'text-muted-foreground'}`} />
       </Button>
-      <Link href={href} className="block group">
+      <Link to={href} className="block group"> {/* Changed to react-router-dom Link */}
         <CardHeader className="p-0">
           <div className="aspect-square relative">
-            <Image
+            {/* Replaced next/image with standard img */}
+            <img
               src={finalThumbnailUrl}
               alt={imageAlt}
-              fill
-              sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) 25vw, 20vw"
-              className="object-cover"
+              className="object-cover w-full h-full"
               data-ai-hint={dataAiHint}
-              priority={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5}
+              loading={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5 ? "eager" : "lazy"}
             />
           </div>
         </CardHeader>
@@ -86,7 +84,7 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
       </Link>
       <CardFooter className="p-3 pt-0"> 
         <Button asChild variant="outline" className="w-full group text-sm h-9"> 
-          <Link href={href} className="flex items-center justify-center gap-2">
+          <Link to={href} className="flex items-center justify-center gap-2"> {/* Changed to react-router-dom Link */}
             <PlayCircle className="h-4 w-4 text-accent group-hover:text-accent-foreground transition-colors" />
             <span>{isEpisode(anime) ? 'Ver Episodio' : 'Ver Detalles'}</span>
           </Link>

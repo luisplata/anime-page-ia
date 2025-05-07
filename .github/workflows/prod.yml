@@ -1,3 +1,4 @@
+
 name: Deploy Project On Production
 
 on:
@@ -7,11 +8,8 @@ on:
       - main
 
 jobs:
-
   export-and-deploy:
     runs-on: ubuntu-latest
-    # Add 'environment: Production' here if you have a Production environment configured in GitHub
-    # environment: Production
     outputs:
       artifact_url: ${{ steps.generate_artifact.outputs.artifact_url }}
     steps:
@@ -23,27 +21,25 @@ jobs:
 
       - name: Set Environment Variables
         run: |
-          # Assumes your API environment variable is VITE_API_BASE_URL
-          # If you have more variables, add them here
-          echo "NEXT_PUBLIC_ANIME_API_ENDPOINT=${{ secrets.VITE_API_BASE_URL }}" >> .env
+          echo "VITE_ANIME_API_ENDPOINT=${{ secrets.VITE_API_BASE_URL }}" >> .env
           # Example: If you have another variable SECRET_KEY
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+          # echo "VITE_SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
 
       - name: ⚙️ Construir la aplicación
         run: npm run build
 
-      - name: 🔍 Verificar si la carpeta build existe (assuming 'out')
-        run: ls -la out
+      - name: 🔍 Verificar si la carpeta build existe (now 'dist')
+        run: ls -la dist
 
       - name: 🗜️ Comprimir el build
         run: |
-          cd out
+          cd dist
           zip -r ../build.zip .
 
       - name: Validate build.zip
         run: |
-          echo "Listing contents of out directory:"
-          ls -la out
+          echo "Listing contents of dist directory:"
+          ls -la dist
           echo "Checking build.zip:"
           ls -la build.zip || echo "build.zip not found!"
 
@@ -57,15 +53,12 @@ jobs:
       - name: Generate Artifact URL
         id: generate_artifact
         run: |
-          echo "::set-output name=artifact_url::https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ steps.upload_artifact.outputs.artifact-id }}/zip"
+          echo "artifact_url=https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ steps.upload_artifact.outputs.artifact-id }}/zip" >> $GITHUB_OUTPUT
 
   deploy:
     runs-on: ubuntu-latest
-    # Add 'environment: Production' here if you have a Production environment configured in GitHub
-    # environment: Production
     needs: export-and-deploy
     steps:
-
       - name: 📥 Descargar el artefacto
         uses: actions/download-artifact@v4
         with:
@@ -92,7 +85,7 @@ jobs:
           script: |
             APP_DIR="${HOME}/${{ secrets.APP_DIR }}"
             ARTIFACT_URL="${{ needs.export-and-deploy.outputs.artifact_url }}"
-            TEMP_ZIP="$APP_DIR/Export.zip"
+            TEMP_ZIP_PATH="/home/${{ secrets.SSH_USER }}/build.zip" # Path where scp copied the file
 
             # Limpiar el directorio si existe
             if [ -d "$APP_DIR" ]; then
@@ -103,35 +96,32 @@ jobs:
               mkdir -p "$APP_DIR"
             fi
 
-            # Descargar el archivo ZIP
-            echo "Downloading artifact..."
-            curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "$ARTIFACT_URL" -o "$TEMP_ZIP"
-
-            # Verificar el contenido del ZIP descargado
-            echo "Checking ZIP contents..."
-            unzip -l "$TEMP_ZIP"
-
-            # Comprobar si la descarga fue exitosa
-            if [ $? -ne 0 ]; then
-              echo "Failed to download artifact."
+            # Verificar si el archivo ZIP existe en el servidor
+            if [ ! -f "$TEMP_ZIP_PATH" ]; then
+              echo "build.zip not found at $TEMP_ZIP_PATH on server. Downloading from artifact URL as fallback (if configured)."
+              # Fallback: Intenta descargar directamente si la URL del artefacto es accesible y GITHUB_TOKEN tiene permisos
+              # Esto puede ser útil si el scp-action tiene problemas o para verificar
+              # Nota: GITHUB_TOKEN podría no tener permisos para acceder a artefactos de esta manera en todos los contextos.
+              # Asegúrate que el token tiene `actions:read`
+              # Este es un paso de contingencia y puede que no funcione en todos los setups.
+              # Se recomienda que `appleboy/scp-action` sea el método primario.
+              # curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              #  -H "Accept: application/vnd.github.v3+json" \
+              #  "$ARTIFACT_URL" -o "$TEMP_ZIP_PATH"
+              # if [ $? -ne 0 ]; then
+              #   echo "Failed to download artifact via curl."
+              #   exit 1
+              # fi
+              echo "SCP action should have placed build.zip. If not, check scp-action logs."
               exit 1
             fi
 
             # Descomprimir el archivo en APP_DIR
-            echo "Extracting ZIP..."
-            unzip -o "$TEMP_ZIP" -d "$APP_DIR"
+            echo "Extracting ZIP from $TEMP_ZIP_PATH..."
+            unzip -o "$TEMP_ZIP_PATH" -d "$APP_DIR"
 
-            # Eliminar el ZIP para evitar conflictos futuros
-            echo "Deleting ZIP..."
-            rm -f "$TEMP_ZIP"
-
-            # Descomprimir el archivo en APP_DIR (assuming build.zip is inside TEMP_ZIP)
-            echo "Extracting build.zip into APP_DIR..."
-            unzip -o "$APP_DIR/build.zip" -d "$APP_DIR"
-
-            # Eliminar el ZIP para evitar conflictos futuros
-            echo "Deleting build.zip..."
-            rm -f "$APP_DIR/build.zip"
-
+            # Eliminar el ZIP después de descomprimir
+            echo "Deleting ZIP $TEMP_ZIP_PATH..."
+            rm -f "$TEMP_ZIP_PATH"
+            
             echo "Deployment finished!"

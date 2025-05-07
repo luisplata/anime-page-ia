@@ -1,11 +1,14 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
     darkMode: ["class"],
     content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./index.html", // Added for Vite's main HTML file
+    "./src/**/*.{js,ts,jsx,tsx,mdx}", // Keep general src pattern
+    // Remove Next.js specific paths if they are no longer relevant
+    // "./src/pages/**/*.{js,ts,jsx,tsx,mdx}", 
+    // "./src/app/**/*.{js,ts,jsx,mdx}",
   ],
   theme: {
   	extend: {
@@ -92,3 +95,4 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
