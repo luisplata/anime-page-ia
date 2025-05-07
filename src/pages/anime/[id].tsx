@@ -1,4 +1,3 @@
-
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -38,6 +37,7 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
   }
   
   const coverUrl = anime.coverUrl || `https://picsum.photos/seed/${anime.id}/400/600`;
+  const encodedAnimeId = encodeURIComponent(anime.id);
 
   return (
     <>
@@ -57,7 +57,6 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
                   className="object-cover"
                   data-ai-hint="anime cover art"
                   priority
-                  // unoptimized prop removed to rely on global config
                 />
               </div>
             </Card>
@@ -91,7 +90,7 @@ export default function AnimeDetailPage({ anime, error }: AnimeDetailPageProps) 
                     {anime.episodes.length > 0 ? anime.episodes.map((episode: Episode) => (
                       <li key={episode.episodeNumber}>
                         <Button variant="ghost" asChild className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/10 rounded-md transition-colors">
-                          <Link href={`/ver/${anime.id}/${episode.episodeNumber}`} className="flex items-center gap-3">
+                          <Link href={`/ver/${encodedAnimeId}/${episode.episodeNumber}`} className="flex items-center gap-3">
                             <PlaySquare className="h-5 w-5 text-accent flex-shrink-0" />
                             <div className="flex-grow">
                               <span className="font-medium text-foreground block">
@@ -125,14 +124,14 @@ export const getStaticPaths: GetStaticPaths = async () => {
 };
 
 export const getStaticProps: GetStaticProps<AnimeDetailPageProps> = async (context) => {
-  const id = context.params?.id as string;
+  const id = context.params?.id as string; // This `id` will be URL-decoded by Next.js
 
   if (!id) {
     return { props: { anime: null, error: "ID de anime no proporcionado." } };
   }
 
   try {
-    const anime = await getAnimeDetail(id);
+    const anime = await getAnimeDetail(id); // Call API with original (decoded) id
      if (!anime || anime.id.startsWith('error-detail-')) { 
       return { props: { anime: null, error: `No se encontró el anime con ID: ${id}` } };
     }

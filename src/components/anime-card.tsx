@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -33,7 +32,8 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
     }
   };
   
-  const href = isEpisode(anime) ? `/ver/${anime.animeId}/${anime.episodeNumber}` : `/anime/${anime.id}`;
+  const encodedAnimeId = encodeURIComponent(isEpisode(anime) ? anime.animeId : anime.id);
+  const href = isEpisode(anime) ? `/ver/${encodedAnimeId}/${anime.episodeNumber}` : `/anime/${encodedAnimeId}`;
   
   let title: string;
   if (isEpisode(anime)) {
@@ -73,7 +73,6 @@ export function AnimeCard({ anime, type }: AnimeCardProps) {
               className="object-cover"
               data-ai-hint={dataAiHint}
               priority={isEpisode(anime) && typeof anime.episodeNumber === 'number' && anime.episodeNumber < 5}
-              // Removed unoptimized prop here to rely on global next.config.ts setting
             />
           </div>
         </CardHeader>

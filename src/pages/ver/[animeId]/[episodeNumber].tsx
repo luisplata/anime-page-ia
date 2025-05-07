@@ -1,4 +1,3 @@
-
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +43,7 @@ export default function EpisodePlayerPage({
             {error || "No se pudo cargar la información del episodio. Puede que el anime o el episodio no existan, o haya un problema con el servidor."}
           </p>
           <Button asChild className="mt-6">
-            <Link href={anime?.id ? `/anime/${anime.id}` : "/directorio"}>
+            <Link href={anime?.id ? `/anime/${encodeURIComponent(anime.id)}` : "/directorio"}>
               {anime?.id ? "Volver a la página del anime" : "Volver al Directorio"}
             </Link>
           </Button>
@@ -52,6 +51,8 @@ export default function EpisodePlayerPage({
       </>
     );
   }
+  
+  const encodedAnimeId = encodeURIComponent(anime.id);
 
   return (
     <>
@@ -67,7 +68,7 @@ export default function EpisodePlayerPage({
                 {fullEpisodeTitle}
               </h1>
               <Button variant="link" asChild className="text-sm text-accent hover:underline flex items-center gap-1 mt-1 px-0">
-                <Link href={`/anime/${anime.id}`}>
+                <Link href={`/anime/${encodedAnimeId}`}>
                   <ListCollapse className="h-4 w-4" />
                   Volver a {anime.title}
                 </Link>
@@ -89,14 +90,14 @@ export default function EpisodePlayerPage({
             
             <div className="mt-6 flex justify-between items-center">
               <Button asChild variant="outline" disabled={!prevEpisode}>
-                <Link href={prevEpisode ? `/ver/${anime.id}/${prevEpisode.episodeNumber}` : '#'} className="flex items-center gap-2" aria-disabled={!prevEpisode}>
+                <Link href={prevEpisode ? `/ver/${encodedAnimeId}/${prevEpisode.episodeNumber}` : '#'} className="flex items-center gap-2" aria-disabled={!prevEpisode}>
                   <ChevronLeft className="h-5 w-5" />
                   Anterior
                 </Link>
               </Button>
               
               <Button asChild variant="outline" disabled={!nextEpisode}>
-                <Link href={nextEpisode ? `/ver/${anime.id}/${nextEpisode.episodeNumber}` : '#'} className="flex items-center gap-2" aria-disabled={!nextEpisode}>
+                <Link href={nextEpisode ? `/ver/${encodedAnimeId}/${nextEpisode.episodeNumber}` : '#'} className="flex items-center gap-2" aria-disabled={!nextEpisode}>
                   Siguiente
                   <ChevronRight className="h-5 w-5" />
                 </Link>
@@ -119,7 +120,7 @@ export default function EpisodePlayerPage({
                                       asChild 
                                       className={`w-full justify-start text-left h-auto py-2 px-3 ${ep.episodeNumber === currentEpisode?.episodeNumber ? 'font-semibold' : ''}`}
                                     >
-                                        <Link href={`/ver/${anime.id}/${ep.episodeNumber}`} className="block truncate">
+                                        <Link href={`/ver/${encodedAnimeId}/${ep.episodeNumber}`} className="block truncate">
                                             Ep. {ep.episodeNumber}{ep.title && ep.title.toLowerCase() !== `episode ${ep.episodeNumber}`  && ep.title.toLowerCase() !== `episodio ${ep.episodeNumber}` ? `: ${ep.title}` : ''}
                                         </Link>
                                     </Button>
@@ -138,34 +139,32 @@ export default function EpisodePlayerPage({
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  // TODO: Improve this to fetch actual anime IDs and episode numbers
-  // For now, we'll keep it empty and rely on fallback: 'blocking'
   return {
     paths: [],
-    fallback: 'blocking', // Consider changing to 'true' or 'false' for full static export.
+    fallback: 'blocking',
   };
 };
 
 export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (context) => {
-  const animeId = context.params?.animeId as string;
+  const animeId = context.params?.animeId as string; // This `animeId` will be URL-decoded by Next.js
   const episodeNumberStr = context.params?.episodeNumber as string;
   const episodeNumber = parseInt(episodeNumberStr, 10);
 
   if (!animeId || isNaN(episodeNumber)) {
-    return { props: { anime: null, currentEpisode: null, episodeNumber: NaN, error: "ID de anime o número de episodio inválido." } }; // Removed revalidate
+    return { props: { anime: null, currentEpisode: null, episodeNumber: NaN, error: "ID de anime o número de episodio inválido." } };
   }
 
   try {
-    const anime = await getAnimeDetail(animeId);
+    const anime = await getAnimeDetail(animeId); // Call API with original (decoded) animeId
 
     if (!anime || anime.id.startsWith('error-detail-')) {
-      return { props: { anime: null, currentEpisode: null, episodeNumber, error: `Anime con ID ${animeId} no encontrado.` } }; // Removed revalidate
+      return { props: { anime: null, currentEpisode: null, episodeNumber, error: `Anime con ID ${animeId} no encontrado.` } };
     }
 
     const currentEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber) || null;
 
     if (!currentEpisode) {
-      return { props: { anime, currentEpisode: null, episodeNumber, error: `Episodio ${episodeNumber} no encontrado para ${anime.title}.` } }; // Removed revalidate
+      return { props: { anime, currentEpisode: null, episodeNumber, error: `Episodio ${episodeNumber} no encontrado para ${anime.title}.` } };
     }
 
     const episodeBaseTitle = `${anime.title} - Episodio ${currentEpisode.episodeNumber}`;
@@ -173,7 +172,6 @@ export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (con
       ? `${episodeBaseTitle}: ${currentEpisode.title}`
       : episodeBaseTitle;
 
-    // Correctly find nextEpisode: it should be episodeNumber + 1
     const prevEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber - 1) || null;
     const nextEpisode = anime.episodes.find(ep => ep.episodeNumber === episodeNumber + 1) || null;
 
@@ -187,10 +185,9 @@ export const getStaticProps: GetStaticProps<EpisodePlayerPageProps> = async (con
         prevEpisode,
         nextEpisode,
       },
-      // revalidate: 3600, // Removed for static export compatibility
     };
   } catch (error) {
     console.error(`Failed to fetch details for ${animeId}/${episodeNumber}:`, error);
-    return { props: { anime: null, currentEpisode: null, episodeNumber, error: "Error al cargar la información del episodio." } }; // Removed revalidate
+    return { props: { anime: null, currentEpisode: null, episodeNumber, error: "Error al cargar la información del episodio." } };
   }
 };
