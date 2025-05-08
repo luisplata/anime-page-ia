@@ -8,7 +8,9 @@ import DirectoryPage from '@/views/directorio/DirectoryPage';
 import AnimeDetailPage from '@/views/anime/AnimeDetailPage';
 import EpisodePlayerPage from '@/views/ver/EpisodePlayerPage';
 import FavoritesPage from '@/views/favoritos/FavoritesPage';
+import { Footer } from '@/components/Footer'; // Import Footer
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 
 const animeImages = [
   '/assets/animebell_logo_name_prototype.png',
@@ -37,11 +39,16 @@ export default function App() {
   const location = useLocation();
   const [homePageKey, setHomePageKey] = useState(Date.now());
   const [randomImage, setRandomImage] = useState('');
+  const [currentUrl, setCurrentUrl] = useState('');
 
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * animeImages.length);
     setRandomImage(animeImages[randomIndex]);
   }, []);
+
+  useEffect(() => {
+    setCurrentUrl(window.location.href);
+  }, [location]);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -58,22 +65,43 @@ export default function App() {
     }
   };
 
+  const defaultSocialImage = 'https://picsum.photos/seed/animebell-social/1200/630';
+  const siteName = "AnimeBell";
+
   return (
     <div className={`font-sans antialiased flex min-h-screen w-full flex-col bg-background text-foreground`}>
+      <Helmet>
+        <title>{siteName} - Ver Anime Online</title>
+        <meta name="description" content="AnimeBell - Tu portal para ver anime online. Disfruta de los últimos episodios y descubre nuevas series." />
+        <link rel="canonical" href={currentUrl} />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:title" content={`${siteName} - Ver Anime Online`} />
+        <meta property="og:description" content="AnimeBell - Tu portal para ver anime online. Disfruta de los últimos episodios y descubre nuevas series." />
+        <meta property="og:image" content={defaultSocialImage} data-ai-hint="social media banner" />
+        <meta property="og:site_name" content={siteName} />
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={currentUrl} />
+        <meta property="twitter:title" content={`${siteName} - Ver Anime Online`} />
+        <meta property="twitter:description" content="AnimeBell - Tu portal para ver anime online. Disfruta de los últimos episodios y descubre nuevas series." />
+        <meta property="twitter:image" content={defaultSocialImage} data-ai-hint="social media banner" />
+      </Helmet>
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="flex items-center gap-2 text-lg font-semibold md:text-base"
           onClick={handleHomeNavigation}
         >
           {randomImage && (
-            <img src={randomImage} alt="AnimeBell Logo" className="h-8 w-8 object-cover rounded-full mr-2" />
+            <img src={randomImage} alt="AnimeBell Logo" className="h-8 w-8 object-cover rounded-full mr-2" data-ai-hint="logo avatar" />
           )}
-          <h1 className="text-xl font-bold">AnimeBell</h1>
+          <h1 className="text-xl font-bold">{siteName}</h1>
         </Link>
         <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 ml-auto">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="text-foreground transition-colors hover:text-accent font-medium"
             onClick={handleHomeNavigation}
           >
@@ -123,6 +151,7 @@ export default function App() {
           <Route path="/favoritos" element={<FavoritesPage />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -1,13 +1,13 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useFavorites } from '@/hooks/use-favorites';
 import { getAnimeDetail, type AnimeDetail, type AnimeListing } from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
 import { Button } from '@/components/ui/button';
 import { Star, Frown, Upload, Download, Loader2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { useToast } from '@/hooks/use-toast';
 
 function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
   return {
@@ -19,14 +19,20 @@ function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
 
 export default function FavoritesPage() {
   const { favoriteIds, addFavorite, isLoading: favoritesLoadingHook } = useFavorites();
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const location = useLocation();
 
   const [favoriteAnimes, setFavoriteAnimes] = useState<AnimeListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUrl, setCurrentUrl] = useState('');
+
+  useEffect(() => {
+    setCurrentUrl(window.location.origin + location.pathname + location.search);
+  }, [location]);
 
   useEffect(() => {
     if (favoritesLoadingHook) {
@@ -96,24 +102,21 @@ export default function FavoritesPage() {
     }
     setIsExporting(true);
     try {
-      // Fetch details for all favorites to include title
       const detailedFavoritesPromises = favoriteIds.map(id => getAnimeDetail(id));
       const detailedResults = await Promise.allSettled(detailedFavoritesPromises);
       
-      const csvData: string[] = ["id,title"]; // CSV Header
+      const csvData: string[] = ["id,title"];
       detailedResults.forEach(result => {
         if (result.status === 'fulfilled' && result.value && result.value.id && !result.value.title?.includes("Anime no encontrado")) {
           const anime = result.value;
-          // Sanitize title for CSV (remove commas, quotes)
           const sanitizedTitle = anime.title.replace(/"/g, '""').replace(/,/g, '');
           csvData.push(`${anime.id},"${sanitizedTitle}"`);
         }
       });
 
       if (csvData.length <= 1 && favoriteIds.length > 0) {
-          // Fallback to only slugs if details fail for all
-          csvData.splice(1); // Remove existing data if any
-          favoriteIds.forEach(id => csvData.push(`${id},""`)); // Add slug with empty title
+          csvData.splice(1); 
+          favoriteIds.forEach(id => csvData.push(`${id},""`));
           toast({
             title: "Exportación Parcial",
             description: "No se pudieron obtener los títulos de los animes. Exportando solo IDs.",
@@ -128,7 +131,6 @@ export default function FavoritesPage() {
         setIsExporting(false);
         return;
       }
-
 
       const csvString = csvData.join("\n");
       const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
@@ -191,12 +193,10 @@ export default function FavoritesPage() {
         let importedCount = 0;
         let alreadyFavoriteCount = 0;
 
-        // Start from the second line (skip header)
         for (let i = 1; i < lines.length; i++) {          
           const line = lines[i];
-          if (!line.trim()) continue; // Skip empty lines
+          if (!line.trim()) continue;
 
-          // Basic CSV parsing: split by comma, handle quoted fields
           const values = [];
           let currentVal = '';
           let inQuotes = false;
@@ -210,7 +210,7 @@ export default function FavoritesPage() {
               currentVal += char;
             }
           }
-          values.push(currentVal.trim()); // Add the last value
+          values.push(currentVal.trim());
 
           const animeId = values[idIndex];
           if (animeId) {
@@ -246,7 +246,6 @@ export default function FavoritesPage() {
         toast({ title: "Error de Importación", description: "No se pudo procesar el archivo CSV.", variant: "destructive" });
       } finally {
         setIsImporting(false);
-        // Reset file input to allow re-uploading the same file if needed
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -259,12 +258,28 @@ export default function FavoritesPage() {
     reader.readAsText(file);
   };
 
+  const pageTitle = "Mis Animes Favoritos - AnimeBell";
+  const pageDesc = "Administra y accede a tu lista de animes favoritos en AnimeBell.";
+  const defaultSocialImage = 'https://picsum.photos/seed/animebell-social/1200/630';
 
   return (
     <>
       <Helmet>
-        <title>Mis Favoritos - AniView</title>
-        <meta name="description" content="Ve y gestiona tus animes favoritos." />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <link rel="canonical" href={currentUrl} />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:image" content={defaultSocialImage} data-ai-hint="social media banner" />
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={currentUrl} />
+        <meta property="twitter:title" content={pageTitle} />
+        <meta property="twitter:description" content={pageDesc} />
+        <meta property="twitter:image" content={defaultSocialImage} data-ai-hint="social media banner" />
       </Helmet>
       <div className="container mx-auto px-4 py-8">
         <header className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">

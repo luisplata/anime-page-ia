@@ -4,6 +4,7 @@ import { getLatestEpisodes, getLatestAddedAnime, type NewEpisode, type AnimeList
 import { AnimeCard } from '@/components/anime-card';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 
 export default function HomePage() {
   const [latestEpisodes, setLatestEpisodes] = useState<NewEpisode[]>([]);
@@ -12,6 +13,12 @@ export default function HomePage() {
   const [loadingAddedAnime, setLoadingAddedAnime] = useState(true);
   const [errorEpisodes, setErrorEpisodes] = useState<string | null>(null);
   const [errorAddedAnime, setErrorAddedAnime] = useState<string | null>(null);
+  const location = useLocation();
+  const [currentUrl, setCurrentUrl] = useState('');
+
+  useEffect(() => {
+    setCurrentUrl(window.location.origin + location.pathname + location.search);
+  }, [location]);
 
   useEffect(() => {
     const fetchLatestEpisodes = async () => {
@@ -102,11 +109,28 @@ export default function HomePage() {
     </section>
   );
 
+  const pageTitle = "AnimeBell - Inicio - Ver Anime Online";
+  const pageDesc = "Descubre los últimos episodios de anime y series populares en AnimeBell. Tu portal para ver anime online gratis.";
+  const defaultSocialImage = 'https://picsum.photos/seed/animebell-social/1200/630';
+
   return (
     <>
       <Helmet>
-        <title>AniView - Inicio</title>
-        <meta name="description" content="Mira los últimos episodios de anime y descubre nuevas series." />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <link rel="canonical" href={currentUrl} />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:image" content={defaultSocialImage} data-ai-hint="social media banner" />
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={currentUrl} />
+        <meta property="twitter:title" content={pageTitle} />
+        <meta property="twitter:description" content={pageDesc} />
+        <meta property="twitter:image" content={defaultSocialImage} data-ai-hint="social media banner" />
       </Helmet>
       <div className="container mx-auto px-4 py-8">
         {renderSection(

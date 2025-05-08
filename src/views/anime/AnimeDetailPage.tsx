@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,29 +10,27 @@ import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck } from 'lucide-reac
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-import { ShareButton } from '@/components/share-button'; // Import ShareButton
+import { ShareButton } from '@/components/share-button';
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
   const { getBookmarkForAnime } = useBookmarks();
   const [bookmarkedEpisodeNumber, setBookmarkedEpisodeNumber] = useState<number | null>(null);
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Keep loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState('');
+  const location = useLocation();
+  const [currentUrl, setCurrentUrl] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setShareUrl(window.location.href);
-    }
-  }, [animeId]);
+    setCurrentUrl(window.location.origin + location.pathname + location.search);
+  }, [location]);
 
   useEffect(() => {
     if (!animeId) {
       setError("ID de anime no proporcionado.");
       setIsLoading(false);
       return;
-
     }
 
     const fetchAnimeDetails = async () => {
@@ -41,10 +39,8 @@ export default function AnimeDetailPage() {
       setAnime(null);
       try {
         const data = await getAnimeDetail(animeId);
-        if (data && data.id) {
+        if (data && data.id && !data.title?.includes("Anime no encontrado")) {
           setAnime(data);
-        } else if (data && !data.id && data.title?.includes("Anime no encontrado")) {
-          setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
         } else {
            setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
         }
@@ -57,20 +53,26 @@ export default function AnimeDetailPage() {
     };
 
     const fetchBookmark = async () => {
-      const bookmark = await getBookmarkForAnime(animeId);
-      if (bookmark) {
-        setBookmarkedEpisodeNumber(bookmark);
+      // Ensure animeId is valid before fetching bookmark
+      if(animeId) {
+        const bookmark = await getBookmarkForAnime(animeId);
+        if (bookmark) {
+          setBookmarkedEpisodeNumber(bookmark);
+        }
       }
     };
 
     fetchBookmark();
     fetchAnimeDetails();
-  }, [animeId]);
+  }, [animeId, getBookmarkForAnime]);
 
 
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 min-h-screen">
+        <Helmet>
+          <title>Cargando Anime... - AnimeBell</title>
+        </Helmet>
         <div className="grid md:grid-cols-3 gap-8 items-start">
           <div className="md:col-span-1 space-y-4">
             <div className="aspect-[2/3] bg-muted animate-pulse rounded-lg"></div>
@@ -94,11 +96,29 @@ export default function AnimeDetailPage() {
     );
   }
 
+  const pageTitle = anime && anime.id ? `${anime.title} - Ver Online en AnimeBell` : (error ? "Error - AnimeBell" : "Anime no Encontrado - AnimeBell");
+  const pageDesc = anime && anime.id ? `Mira todos los episodios de ${anime.title}. ${anime.description?.substring(0, 160) ?? ''}...` : (error || "No se pudo cargar la información del anime.");
+  const socialImage = anime?.coverUrl || 'https://picsum.photos/seed/animebell-social/1200/630';
+
   if (error || !anime || !anime.id) {
     return (
       <>
         <Helmet>
-          <title>Error - AniView</title>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDesc} />
+          <link rel="canonical" href={currentUrl} />
+           {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={currentUrl} />
+          <meta property="og:title" content={pageTitle} />
+          <meta property="og:description" content={pageDesc} />
+          <meta property="og:image" content={socialImage} data-ai-hint="social media banner error" />
+          {/* Twitter */}
+          <meta property="twitter:card" content="summary_large_image" />
+          <meta property="twitter:url" content={currentUrl} />
+          <meta property="twitter:title" content={pageTitle} />
+          <meta property="twitter:description" content={pageDesc} />
+          <meta property="twitter:image" content={socialImage} data-ai-hint="social media banner error" />
         </Helmet>
         <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col justify-center items-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
@@ -120,8 +140,22 @@ export default function AnimeDetailPage() {
   return (
     <>
       <Helmet>
-        <title>{`${anime.title || 'Anime Desconocido'} - AniView`}</title>
-        <meta name="description" content={anime.description ? anime.description.substring(0, 160) : `Detalles sobre ${anime.title || 'este anime'}.`} />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <link rel="canonical" href={currentUrl} />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="video.tv_show" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:image" content={socialImage} data-ai-hint="anime cover art social" />
+        <meta property="og:site_name" content="AnimeBell" />
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={currentUrl} />
+        <meta property="twitter:title" content={pageTitle} />
+        <meta property="twitter:description" content={pageDesc} />
+        <meta property="twitter:image" content={socialImage} data-ai-hint="anime cover art social" />
       </Helmet>
       <div className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-3 gap-8 items-start">
@@ -136,25 +170,23 @@ export default function AnimeDetailPage() {
                 />
               </div>
             </Card>
-             {getBookmarkForAnime(anime.id) && (
- bookmarkedEpisodeNumber !== null && ( // Add this check
- <Card className="mt-4 bg-accent/10 border-accent shadow-md rounded-lg">
-                    <CardContent className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-2 text-accent-foreground">
-                            <BookmarkCheck className="h-5 w-5" />
-                            <p className="text-sm font-medium">
-                                Continuar viendo: Episodio {bookmarkedEpisodeNumber}
-                            </p>
- </div>
-                         <Button variant="link" size="sm" asChild className="mt-1 text-accent-foreground hover:text-accent-foreground/80">
-                            <Link to={`/ver/${encodedAnimeId}/${bookmarkedEpisodeNumber}`}>
-                                Ir al episodio
-                            </Link>
-                        </Button>
-                    </CardContent>
- </Card>
- )
-            )}
+             {getBookmarkForAnime(anime.id) && bookmarkedEpisodeNumber !== null && (
+                <Card className="mt-4 bg-accent/10 border-accent shadow-md rounded-lg">
+                  <CardContent className="p-3 text-center">
+                      <div className="flex items-center justify-center gap-2 text-accent-foreground">
+                          <BookmarkCheck className="h-5 w-5" />
+                          <p className="text-sm font-medium">
+                              Continuar viendo: Episodio {bookmarkedEpisodeNumber}
+                          </p>
+                      </div>
+                        <Button variant="link" size="sm" asChild className="mt-1 text-accent-foreground hover:text-accent-foreground/80">
+                          <Link to={`/ver/${encodedAnimeId}/${bookmarkedEpisodeNumber}`}>
+                              Ir al episodio
+                          </Link>
+                      </Button>
+                  </CardContent>
+                </Card>
+              )}
           </div>
 
           <div className="md:col-span-2">
@@ -164,8 +196,8 @@ export default function AnimeDetailPage() {
                 <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="lg" />
                 <ShareButton
                   shareTitle={anime.title}
-                  shareText={`¡Echa un vistazo a ${anime.title}! ${anime.description?.substring(0, 120) ?? ''}...`}
-                  shareUrl={shareUrl}
+                  shareText={`¡Echa un vistazo a ${anime.title} en AnimeBell! ${anime.description?.substring(0, 120) ?? ''}...`}
+                  shareUrl={currentUrl}
                   size="lg"
                   buttonText="Compartir Anime"
                 />
@@ -190,11 +222,11 @@ export default function AnimeDetailPage() {
                 <ScrollArea className="h-[400px] pr-4">
                   <ul className="space-y-3">
                     {anime.episodes.length > 0 ? anime.episodes.map((episode: Episode) => {
-                      const isBookmarked = bookmarkedEpisodeNumber !== null && episode.episodeNumber === bookmarkedEpisodeNumber;
+                      const isBookmarkedCurrentEp = bookmarkedEpisodeNumber !== null && episode.episodeNumber === bookmarkedEpisodeNumber;
                       return (
                         <li key={episode.episodeNumber}>
                           <Button
-                            variant={isBookmarked ? "secondary" : "ghost"}
+                            variant={isBookmarkedCurrentEp ? "secondary" : "ghost"}
                             asChild
                             className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/10 rounded-md transition-colors"
                           >
@@ -206,7 +238,7 @@ export default function AnimeDetailPage() {
                                   {episode.title && episode.title.toLowerCase() !== `episode ${episode.episodeNumber}` && episode.title.toLowerCase() !== `episodio ${episode.episodeNumber}` ? `: ${episode.title}` : ''}
                                 </span>
                               </div>
-                              {isBookmarked && <BookmarkCheck className="h-5 w-5 text-accent flex-shrink-0 ml-2" />}
+                              {isBookmarkedCurrentEp && <BookmarkCheck className="h-5 w-5 text-accent flex-shrink-0 ml-2" />}
                             </Link>
                           </Button>
                           <Separator className="mt-3" />

@@ -25,11 +25,16 @@ export default function DirectoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [pageTitle, setPageTitle] = useState("Directorio de Anime - AniView");
+  const [pageTitle, setPageTitle] = useState("Directorio de Anime - AnimeBell");
   const [pageDescription, setPageDescription] = useState("Explora nuestra vasta colección de series de anime.");
-
+  const [currentUrl, setCurrentUrl] = useState('');
+  
   const [searchInput, setSearchInput] = useState(searchQueryFromUrl);
 
+  useEffect(() => {
+    setCurrentUrl(window.location.origin + location.pathname + location.search);
+  }, [location]);
+  
   useEffect(() => {
     setSearchInput(searchQueryFromUrl);
   }, [searchQueryFromUrl]);
@@ -44,11 +49,11 @@ export default function DirectoryPage() {
         let response: PaginatedAnimeResponse;
         if (searchQueryFromUrl.trim()) {
           response = await searchAnimes(searchQueryFromUrl.trim(), pageFromUrl);
-          setPageTitle(`Resultados para "${searchQueryFromUrl}" (Pág. ${pageFromUrl}) - AniView`);
+          setPageTitle(`Resultados para "${searchQueryFromUrl}" (Pág. ${pageFromUrl}) - AnimeBell`);
           setPageDescription(`Mostrando resultados de búsqueda para "${searchQueryFromUrl}", página ${pageFromUrl}.`);
         } else {
           response = await getAnimeDirectory(pageFromUrl);
-          setPageTitle(`Directorio de Anime (Pág. ${pageFromUrl}) - AniView`);
+          setPageTitle(`Directorio de Anime (Pág. ${pageFromUrl}) - AnimeBell`);
           setPageDescription(`Explora nuestra vasta colección de series de anime, página ${pageFromUrl}.`);
         }
         setAnimeData(response);
@@ -56,6 +61,8 @@ export default function DirectoryPage() {
         console.error("Error fetching animes:", err);
         setError("No se pudo cargar la información de los animes.");
         setAnimeData(null);
+        setPageTitle("Error - AnimeBell");
+        setPageDescription("Ocurrió un error al cargar los animes.");
       } finally {
         setIsLoading(false);
       }
@@ -87,12 +94,26 @@ export default function DirectoryPage() {
   const currentPage = animeData?.currentPage || 1;
   const totalPages = animeData?.lastPage || 1;
   const paginationLinks = animeData?.links || [];
+  const defaultSocialImage = 'https://picsum.photos/seed/animebell-social/1200/630';
 
   return (
     <>
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
+        <link rel="canonical" href={currentUrl} />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={defaultSocialImage} data-ai-hint="social media banner" />
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={currentUrl} />
+        <meta property="twitter:title" content={pageTitle} />
+        <meta property="twitter:description" content={pageDescription} />
+        <meta property="twitter:image" content={defaultSocialImage} data-ai-hint="social media banner" />
       </Helmet>
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
@@ -162,7 +183,8 @@ export default function DirectoryPage() {
 
                   if (link.url) {
                     try {
-                      const urlObj = new URL(link.url);
+                      // Use window.location.origin for robustness if API returns full URLs
+                      const urlObj = new URL(link.url, window.location.origin);
                       const pageStr = urlObj.searchParams.get('page');
                       if (pageStr) targetPage = parseInt(pageStr, 10);
                     } catch (e) { /* ignore */ }
@@ -176,7 +198,7 @@ export default function DirectoryPage() {
                     if (!animeData?.prevPageUrl) isDisabled = true;
                     else if (animeData?.prevPageUrl) {
                         try {
-                            const urlObj = new URL(animeData.prevPageUrl);
+                            const urlObj = new URL(animeData.prevPageUrl, window.location.origin);
                             const pageStr = urlObj.searchParams.get('page');
                             if (pageStr) targetPage = parseInt(pageStr, 10);
                         } catch (e) { /* ignore */ }
@@ -186,7 +208,7 @@ export default function DirectoryPage() {
                     if (!animeData?.nextPageUrl) isDisabled = true;
                     else if (animeData?.nextPageUrl) {
                         try {
-                            const urlObj = new URL(animeData.nextPageUrl);
+                            const urlObj = new URL(animeData.nextPageUrl, window.location.origin);
                             const pageStr = urlObj.searchParams.get('page');
                             if (pageStr) targetPage = parseInt(pageStr, 10);
                         } catch (e) { /* ignore */ }

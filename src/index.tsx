@@ -3,20 +3,20 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import './globals.css'; // Ensure global styles are imported
+import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { FavoritesProvider } from '@/hooks/use-favorites';
 import { BookmarksProvider } from '@/hooks/use-bookmarks';
 import ClientUuidProvider from '@/components/client-uuid-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { HelmetProvider } from 'react-helmet-async';
+import { HelmetProvider } from 'react-helmet-async'; // Import HelmetProvider
 
 const rootElement = document.getElementById('root');
 
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <HelmetProvider>
+      <HelmetProvider> {/* Wrap with HelmetProvider */}
         <BrowserRouter>
           <ThemeProvider
             attribute="class"
@@ -39,6 +39,3 @@ if (rootElement) {
 } else {
   console.error("Failed to find the root element. The application cannot be mounted.");
 }
-
-// vite-plugin-pwa with registerType: 'autoUpdate' will handle SW registration.
-// No manual registration code needed here unless more control is desired.

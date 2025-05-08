@@ -1,34 +1,33 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
 import EpisodePlayerClient from '@/components/episode-player-client';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { Button } from '@/components/ui/button';
 import { Helmet } from 'react-helmet-async';
 import { AlertTriangle, ArrowLeft, ListVideo, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Remove Share2 import
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-import { ShareButton } from '@/components/share-button'; // Import ShareButton
+import { ShareButton } from '@/components/share-button';
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
   const { setBookmark, removeBookmark, isEpisodeBookmarked, isLoading: bookmarksLoading } = useBookmarks();
+  const location = useLocation();
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState('');
+  const [currentUrl, setCurrentUrl] = useState('');
 
   const episodeNumber = parseInt(episodeNumberStr || '', 10);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setShareUrl(window.location.href);
-    }
-  }, [animeId, episodeNumberStr]);
+    setCurrentUrl(window.location.origin + location.pathname + location.search);
+  }, [location]);
 
   useEffect(() => {
     if (!animeId || !episodeNumberStr) {
@@ -50,7 +49,7 @@ export default function EpisodePlayerPage() {
       setCurrentEpisode(null);
       try {
         const animeData = await getAnimeDetail(animeId);
-        if (!animeData || !animeData.id) {
+        if (!animeData || !animeData.id || animeData.title?.includes("Anime no encontrado")) {
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
           setIsLoading(false);
           return;
@@ -87,6 +86,9 @@ export default function EpisodePlayerPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 min-h-screen">
+        <Helmet>
+          <title>Cargando Episodio... - AnimeBell</title>
+        </Helmet>
         <div className="mb-6 h-10 bg-muted animate-pulse rounded w-1/4"></div>
         <div className="mb-4 h-12 bg-muted animate-pulse rounded w-1/2"></div>
         <div className="mb-6 flex flex-wrap gap-2">
@@ -110,17 +112,40 @@ export default function EpisodePlayerPage() {
   
   const effectiveAnimeTitle = anime?.title || "Anime Desconocido";
   const effectiveEpisodeNumber = currentEpisode?.episodeNumber || episodeNumber || 0;
+  const effectiveEpisodeTitle = currentEpisode?.title || `Episodio ${effectiveEpisodeNumber}`;
+
+  const pageTitle = error || !anime || !currentEpisode 
+    ? (error ? 'Error al Cargar Episodio - AnimeBell' : `Episodio ${effectiveEpisodeNumber} de ${effectiveAnimeTitle} No Encontrado - AnimeBell`)
+    : `Ver ${effectiveAnimeTitle} Episodio ${effectiveEpisodeNumber}${effectiveEpisodeTitle && effectiveEpisodeTitle.toLowerCase() !== `episodio ${effectiveEpisodeNumber}` ? `: ${effectiveEpisodeTitle}` : ''} Online - AnimeBell`;
+  
+  const pageDesc = error || !anime || !currentEpisode
+    ? (error || `No se pudo encontrar el episodio ${effectiveEpisodeNumber} de ${effectiveAnimeTitle}.`)
+    : `Disfruta del episodio ${effectiveEpisodeNumber} de ${effectiveAnimeTitle}${effectiveEpisodeTitle && effectiveEpisodeTitle.toLowerCase() !== `episodio ${effectiveEpisodeNumber}` ? `: ${effectiveEpisodeTitle}` : ''} en AnimeBell. Streaming de anime online.`;
+    
+  const socialImage = anime?.coverUrl || 'https://picsum.photos/seed/animebell-social/1200/630';
+
 
   if (error || !anime || !currentEpisode) {
-    const pageTitle = error ? 'Error al Cargar Episodio' : `Episodio ${effectiveEpisodeNumber} de ${effectiveAnimeTitle} No Encontrado`;
     return (
       <>
         <Helmet>
-          <title>{pageTitle} - AniView</title>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDesc} />
+          <link rel="canonical" href={currentUrl} />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={currentUrl} />
+          <meta property="og:title" content={pageTitle} />
+          <meta property="og:description" content={pageDesc} />
+          <meta property="og:image" content={socialImage} data-ai-hint="social media banner error" />
+          <meta property="twitter:card" content="summary_large_image" />
+          <meta property="twitter:url" content={currentUrl} />
+          <meta property="twitter:title" content={pageTitle} />
+          <meta property="twitter:description" content={pageDesc} />
+          <meta property="twitter:image" content={socialImage} data-ai-hint="social media banner error" />
         </Helmet>
         <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col items-center justify-center max-w-md">
           <AlertTriangle className="mx-auto h-16 w-16 text-destructive mb-4" />
-          <h1 className="mt-4 text-3xl font-bold text-destructive">{pageTitle}</h1>
+          <h1 className="mt-4 text-3xl font-bold text-destructive">{error ? "Error al Cargar Episodio" : `Episodio No Encontrado`}</h1>
           <p className="mt-3 text-lg text-muted-foreground">
             {error || `No se pudo encontrar el episodio ${effectiveEpisodeNumber} de ${effectiveAnimeTitle}. Puede que no exista o haya ocurrido un error.`}
           </p>
@@ -148,7 +173,7 @@ export default function EpisodePlayerPage() {
     );
   }
 
-  const fullEpisodeTitle = `${anime.title} - Episodio ${currentEpisode.episodeNumber}${currentEpisode.title && currentEpisode.title.toLowerCase() !== `episodio ${currentEpisode.episodeNumber}` && currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.episodeNumber}` ? `: ${currentEpisode.title}` : ''}`;
+  const fullEpisodeTitleForDisplay = `${anime.title} - Episodio ${currentEpisode.episodeNumber}${currentEpisode.title && currentEpisode.title.toLowerCase() !== `episodio ${currentEpisode.episodeNumber}` && currentEpisode.title.toLowerCase() !== `episode ${currentEpisode.episodeNumber}` ? `: ${currentEpisode.title}` : ''}`;
   const coverUrl = anime.coverUrl || `https://picsum.photos/seed/${anime.id}/300/450`;
   const otherEpisodes = anime.episodes.filter(ep => ep.episodeNumber !== currentEpisode.episodeNumber);
   const encodedAnimeId = encodeURIComponent(anime.id);
@@ -157,8 +182,23 @@ export default function EpisodePlayerPage() {
   return (
     <>
       <Helmet>
-        <title>{`${fullEpisodeTitle} - AniView`}</title>
-        <meta name="description" content={`Mira ${fullEpisodeTitle} en AniView. Streaming de anime online.`} />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <link rel="canonical" href={currentUrl} />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="video.episode" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:image" content={socialImage} data-ai-hint="anime cover art social" />
+        <meta property="og:site_name" content="AnimeBell" />
+        {anime.title && <meta property="og:video:series" content={anime.title} />}
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={currentUrl} />
+        <meta property="twitter:title" content={pageTitle} />
+        <meta property="twitter:description" content={pageDesc} />
+        <meta property="twitter:image" content={socialImage} data-ai-hint="anime cover art social" />
       </Helmet>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
@@ -170,7 +210,7 @@ export default function EpisodePlayerPage() {
         </div>
 
         <header className="mb-4 text-center md:text-left">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">{fullEpisodeTitle}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">{fullEpisodeTitleForDisplay}</h1>
         </header>
 
         <div className="mb-6 flex flex-col sm:flex-row gap-2 items-center justify-center md:justify-start flex-wrap">
@@ -186,9 +226,9 @@ export default function EpisodePlayerPage() {
               {isCurrentBookmarked ? 'Marcado como actual' : 'Marcar como actual'}
             </Button>
             <ShareButton
-              shareTitle={fullEpisodeTitle}
-              shareText={`Estoy viendo ${fullEpisodeTitle}. ¡Deberías verlo también!`}
-              shareUrl={shareUrl}
+              shareTitle={fullEpisodeTitleForDisplay}
+              shareText={`Estoy viendo ${fullEpisodeTitleForDisplay}. ¡Deberías verlo también!`}
+              shareUrl={currentUrl}
               size="default"
               buttonText="Compartir Episodio"
               className="w-full xs:w-auto"
@@ -198,7 +238,7 @@ export default function EpisodePlayerPage() {
 
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 xl:col-span-9">
-          <EpisodePlayerClient episode={currentEpisode} fullEpisodeTitle={fullEpisodeTitle} />
+          <EpisodePlayerClient episode={currentEpisode} fullEpisodeTitle={fullEpisodeTitleForDisplay} />
           </div>
           <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
             <Card className="shadow-lg rounded-lg overflow-hidden">
