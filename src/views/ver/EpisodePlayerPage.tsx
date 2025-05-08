@@ -6,10 +6,11 @@ import EpisodePlayerClient from '@/components/episode-player-client';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { Button } from '@/components/ui/button';
 import { Helmet } from 'react-helmet-async';
-import { AlertTriangle, ArrowLeft, ListVideo, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ListVideo, Bookmark, BookmarkCheck, Loader2, Share2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBookmarks } from '@/hooks/use-bookmarks';
+import { ShareButton } from '@/components/share-button'; // Import ShareButton
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
@@ -19,8 +20,15 @@ export default function EpisodePlayerPage() {
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState('');
 
   const episodeNumber = parseInt(episodeNumberStr || '', 10);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShareUrl(window.location.href);
+    }
+  }, [animeId, episodeNumberStr]);
 
   useEffect(() => {
     if (!animeId || !episodeNumberStr) {
@@ -81,9 +89,10 @@ export default function EpisodePlayerPage() {
       <div className="container mx-auto px-4 py-8 min-h-screen">
         <div className="mb-6 h-10 bg-muted animate-pulse rounded w-1/4"></div>
         <div className="mb-4 h-12 bg-muted animate-pulse rounded w-1/2"></div>
-        <div className="mb-6 flex gap-4">
-            <div className="h-10 bg-muted animate-pulse rounded w-40"></div>
-            <div className="h-10 bg-muted animate-pulse rounded w-40"></div>
+        <div className="mb-6 flex flex-wrap gap-2">
+            <div className="h-10 bg-muted animate-pulse rounded w-36"></div>
+            <div className="h-10 bg-muted animate-pulse rounded w-44"></div>
+            <div className="h-10 bg-muted animate-pulse rounded w-32"></div>
         </div>
         <div className="grid lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 xl:col-span-9">
@@ -164,18 +173,26 @@ export default function EpisodePlayerPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">{fullEpisodeTitle}</h1>
         </header>
 
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-center md:justify-start">
+        <div className="mb-6 flex flex-col sm:flex-row gap-2 items-center justify-center md:justify-start flex-wrap">
             <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="default" />
             <Button
               variant={isCurrentBookmarked ? "default" : "outline"}
               onClick={handleBookmarkToggle}
               disabled={bookmarksLoading}
-              className="w-full sm:w-auto"
+              className="w-full xs:w-auto"
             >
               {bookmarksLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :
                isCurrentBookmarked ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
               {isCurrentBookmarked ? 'Marcado como actual' : 'Marcar como actual'}
             </Button>
+            <ShareButton
+              shareTitle={fullEpisodeTitle}
+              shareText={`Estoy viendo ${fullEpisodeTitle}. ¡Deberías verlo también!`}
+              shareUrl={shareUrl}
+              size="default"
+              buttonText="Compartir Episodio"
+              className="w-full xs:w-auto"
+            />
           </div>
 
 

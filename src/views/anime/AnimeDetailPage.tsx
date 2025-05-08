@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck } from 'lucide-react';
+import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck, Share2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { useBookmarks } from '@/hooks/use-bookmarks';
+import { ShareButton } from '@/components/share-button'; // Import ShareButton
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
@@ -19,6 +20,13 @@ export default function AnimeDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookmarkedEpisodeNumber, setBookmarkedEpisodeNumber] = useState<number | null>(null);
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShareUrl(window.location.href);
+    }
+  }, [animeId]);
 
   useEffect(() => {
     if (!animeId) {
@@ -63,7 +71,8 @@ export default function AnimeDetailPage() {
         <div className="grid md:grid-cols-3 gap-8 items-start">
           <div className="md:col-span-1 space-y-4">
             <div className="aspect-[2/3] bg-muted animate-pulse rounded-lg"></div>
-            <div className="h-10 bg-muted animate-pulse rounded-lg"></div>
+            <div className="h-10 bg-muted animate-pulse rounded-lg w-full"></div>
+            <div className="h-10 bg-muted animate-pulse rounded-lg w-full"></div>
           </div>
           <div className="md:col-span-2 space-y-6">
             <div className="h-12 bg-muted animate-pulse rounded-lg w-3/4"></div>
@@ -146,8 +155,15 @@ export default function AnimeDetailPage() {
           <div className="md:col-span-2">
             <header className="mb-6">
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{anime.title}</h1>
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="lg" />
+                <ShareButton
+                  shareTitle={anime.title}
+                  shareText={`¡Echa un vistazo a ${anime.title}! ${anime.description?.substring(0, 120) ?? ''}...`}
+                  shareUrl={shareUrl}
+                  size="lg"
+                  buttonText="Compartir Anime"
+                />
               </div>
             </header>
 
