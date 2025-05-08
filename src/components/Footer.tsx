@@ -1,5 +1,4 @@
 
-import type React from 'react';
 import { Mail, ExternalLink } from 'lucide-react';
 
 export function Footer() {
