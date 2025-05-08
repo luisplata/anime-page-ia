@@ -10,7 +10,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'assets/**/*', 'icons/**/*.png'], // Include icons folder
+      // Updated includeAssets to be more specific.
+      // Assets in /public/assets and /public/icons will be picked up by workbox.globPatterns.
+      includeAssets: ['favicon.ico'], 
       manifest: {
         name: 'AniView',
         short_name: 'AniView',
@@ -65,6 +67,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // This will scan the 'dist' directory (output of the build)
+        // and include matched files with revisions in the precache manifest.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2,ttf,eot,otf}'],
         runtimeCaching: [
           {
@@ -124,12 +128,12 @@ export default defineConfig({
     },
   },
   server: {
-    port: 9002,
-    host: true,
-    strictPort: true,
+    port: 9002, // Matches your previous Next.js dev port
+    host: true, // Allow access from network
+    strictPort: true, // Fail if port is already in use
   },
   build: {
-    outDir: 'dist',
+    outDir: 'dist', // Output directory for build files
   },
   define: {
     // Vite uses import.meta.env for environment variables
