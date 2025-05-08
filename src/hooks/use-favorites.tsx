@@ -76,5 +76,7 @@ export function useFavorites() {
   if (context === undefined) {
     throw new Error('useFavorites must be used within a FavoritesProvider');
   }
-  return context;
+  // Rename removeFavorite to avoid conflict if component also declares removeFavorite
+  const { removeFavorite: removeFavoriteFromHook, ...rest } = context;
+  return { ...rest, removeFavorite: removeFavoriteFromHook };
 }
