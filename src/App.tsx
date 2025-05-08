@@ -1,5 +1,5 @@
 
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -34,6 +34,14 @@ const animeImages = [
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [homePageKey, setHomePageKey] = useState(Date.now());
+  const [randomImage, setRandomImage] = useState('');
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * animeImages.length);
+    setRandomImage(animeImages[randomIndex]);
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,24 +50,41 @@ export default function App() {
     navigate(`/directorio?q=${encodeURIComponent(query)}`);
   };
 
-  const [randomImage, setRandomImage] = useState('');
-
-  useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * animeImages.length);
-    setRandomImage(animeImages[randomIndex]);
-  }, []);
+  const handleHomeNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (location.pathname === '/') {
+      // If already on home page, prevent default navigation by Link
+      // and trigger refresh by changing the key
+      event.preventDefault();
+      setHomePageKey(Date.now());
+      // Optionally, scroll to top
+      window.scrollTo(0, 0);
+      // If we were using react-router's navigate, it would be:
+      // navigate('/', { replace: true, state: { refresh: Date.now() } }); 
+      // but changing key is simpler for re-mount.
+    }
+    // If not on home page, Link component will handle navigation normally.
+    // HomePage will mount fresh (or re-mount if key changes) and fetch data.
+  };
 
   return (
     <div className={`font-sans antialiased flex min-h-screen w-full flex-col bg-background text-foreground`}>
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold md:text-base">
+        <Link 
+          to="/" 
+          className="flex items-center gap-2 text-lg font-semibold md:text-base"
+          onClick={handleHomeNavigation}
+        >
           {randomImage && (
-            <img src={randomImage} alt="Random Anime Image" className="h-8 w-8 object-cover rounded-full mr-2" />
+            <img src={randomImage} alt="AnimeBell Logo" className="h-8 w-8 object-cover rounded-full mr-2" />
           )}
           <h1 className="text-xl font-bold">AnimeBell</h1>
         </Link>
         <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 ml-auto">
-          <Link to="/" className="text-foreground transition-colors hover:text-accent font-medium">
+          <Link 
+            to="/" 
+            className="text-foreground transition-colors hover:text-accent font-medium"
+            onClick={handleHomeNavigation}
+          >
             Nuevos Capítulos
           </Link>
           <Link
@@ -99,7 +124,7 @@ export default function App() {
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomePage key={homePageKey} />} />
           <Route path="/directorio" element={<DirectoryPage />} />
           <Route path="/anime/:animeId" element={<AnimeDetailPage />} />
           <Route path="/ver/:animeId/:episodeNumber" element={<EpisodePlayerPage />} />
