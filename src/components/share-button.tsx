@@ -1,8 +1,8 @@
 'use client';
 
-import type React from 'react';
+import * as React from 'react'; // Added import React
 import { Button } from '@/components/ui/button';
-import { Share2, Copy, Link as LinkIcon } from 'lucide-react'; // Added LinkIcon for better fallback visual
+import { Share2, Copy } from 'lucide-react'; 
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -37,7 +37,7 @@ export function ShareButton({
   }, []);
 
   const handleShare = async () => {
-    if (!isClient) return; // Should not happen if button is clicked
+    if (!isClient) return; 
 
     const textToShare = shareText || `¡Echa un vistazo!: ${shareTitle}`;
     
@@ -51,13 +51,11 @@ export function ShareButton({
         toast({ title: "Contenido compartido", description: "¡Gracias por compartir!" });
       } catch (error) {
         console.error("Error al usar Web Share API:", error);
-        // Don't toast error if user cancels share dialog (AbortError)
         if ((error as DOMException).name !== 'AbortError') {
             toast({ title: "Error al compartir", description: "No se pudo compartir el contenido.", variant: "destructive" });
         }
       }
     } else {
-      // Fallback: Copy to clipboard
       if (navigator.clipboard) {
         try {
           await navigator.clipboard.writeText(shareUrl);
@@ -73,7 +71,6 @@ export function ShareButton({
   };
   
   if (!isClient) {
-    // Render a disabled button or placeholder during SSR/initial mount
     return (
       <Button variant={variant} size={size} className={cn(className)} disabled>
         <Share2 className={cn("h-5 w-5", size !== "icon" && "mr-2")} />
