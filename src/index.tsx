@@ -10,7 +10,6 @@ import { BookmarksProvider } from '@/hooks/use-bookmarks';
 import ClientUuidProvider from '@/components/client-uuid-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { HelmetProvider } from 'react-helmet-async';
-import { LoadingProvider } from '@/contexts/loading-context';
 
 const rootElement = document.getElementById('root');
 
@@ -25,15 +24,13 @@ if (rootElement) {
             enableSystem
             disableTransitionOnChange
           >
-            <LoadingProvider>
-              <FavoritesProvider>
-                <BookmarksProvider>
-                  <ClientUuidProvider />
-                  <App />
-                  <Toaster />
-                </BookmarksProvider>
-              </FavoritesProvider>
-            </LoadingProvider>
+            <FavoritesProvider>
+              <BookmarksProvider>
+                <ClientUuidProvider />
+                <App />
+                <Toaster />
+              </BookmarksProvider>
+            </FavoritesProvider>
           </ThemeProvider>
         </BrowserRouter>
       </HelmetProvider>

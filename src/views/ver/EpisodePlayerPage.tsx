@@ -10,16 +10,14 @@ import { AlertTriangle, ArrowLeft, ListVideo, Bookmark, BookmarkCheck, Loader2 }
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function EpisodePlayerPage() {
   const { animeId, episodeNumber: episodeNumberStr } = useParams<{ animeId: string; episodeNumber: string }>();
   const { setBookmark, removeBookmark, isEpisodeBookmarked, isLoading: bookmarksLoading } = useBookmarks();
-  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
-  const [localIsLoading, setLocalIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const episodeNumber = parseInt(episodeNumberStr || '', 10);
@@ -27,19 +25,18 @@ export default function EpisodePlayerPage() {
   useEffect(() => {
     if (!animeId || !episodeNumberStr) {
       setError("ID de anime o número de episodio no proporcionado.");
-      setLocalIsLoading(false);
+      setIsLoading(false);
       return;
     }
 
     if (isNaN(episodeNumber)) {
       setError("Número de episodio inválido.");
-      setLocalIsLoading(false);
+      setIsLoading(false);
       return;
     }
 
     const fetchEpisodeData = async () => {
-      showLoader();
-      setLocalIsLoading(true);
+      setIsLoading(true);
       setError(null);
       setAnime(null);
       setCurrentEpisode(null);
@@ -47,8 +44,7 @@ export default function EpisodePlayerPage() {
         const animeData = await getAnimeDetail(animeId);
         if (!animeData || !animeData.id) {
           setError(`No se encontró el anime con ID: ${animeId} o hubo un error al procesarlo.`);
-          setLocalIsLoading(false);
-          hideLoader();
+          setIsLoading(false);
           return;
         }
         setAnime(animeData);
@@ -63,13 +59,12 @@ export default function EpisodePlayerPage() {
         console.error(`Failed to fetch episode details for ${animeId}/${episodeNumber}:`, err);
         setError(err instanceof Error ? err.message : `Error al cargar la información del episodio.`);
       } finally {
-        setLocalIsLoading(false);
-        hideLoader();
+        setIsLoading(false);
       }
     };
 
     fetchEpisodeData();
-  }, [animeId, episodeNumberStr, episodeNumber, showLoader, hideLoader]);
+  }, [animeId, episodeNumberStr, episodeNumber]);
 
   const handleBookmarkToggle = () => {
     if (!animeId || isNaN(episodeNumber) || bookmarksLoading || !anime || !anime.id) return;
@@ -81,10 +76,25 @@ export default function EpisodePlayerPage() {
     }
   };
 
-  if (localIsLoading) { // Global spinner is active
+  if (isLoading) {
     return (
-      <div className="min-h-screen">
-        {/* Minimal placeholder, global spinner is visible */}
+      <div className="container mx-auto px-4 py-8 min-h-screen">
+        <div className="mb-6 h-10 bg-muted animate-pulse rounded w-1/4"></div>
+        <div className="mb-4 h-12 bg-muted animate-pulse rounded w-1/2"></div>
+        <div className="mb-6 flex gap-4">
+            <div className="h-10 bg-muted animate-pulse rounded w-40"></div>
+            <div className="h-10 bg-muted animate-pulse rounded w-40"></div>
+        </div>
+        <div className="grid lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 xl:col-span-9">
+                <div className="aspect-video bg-muted animate-pulse rounded-lg"></div>
+                <div className="mt-6 h-24 bg-muted animate-pulse rounded-lg"></div>
+            </div>
+            <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
+                <div className="h-64 bg-muted animate-pulse rounded-lg"></div>
+                <div className="h-80 bg-muted animate-pulse rounded-lg"></div>
+            </aside>
+        </div>
       </div>
     );
   }

@@ -7,7 +7,6 @@ import { AnimeCard } from '@/components/anime-card';
 import { Button } from '@/components/ui/button';
 import { Star, Frown } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
-import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
   return {
@@ -19,33 +18,25 @@ function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
 
 export default function FavoritesPage() {
   const { favoriteIds, isLoading: favoritesLoadingHook } = useFavorites();
-  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const [favoriteAnimes, setFavoriteAnimes] = useState<AnimeListing[]>([]);
-  const [localIsLoading, setLocalIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (favoritesLoadingHook) {
-      showLoader(); // Show loader if favorites list itself is loading
-      setLocalIsLoading(true);
+      setIsLoading(true);
       return;
-    } else if (localIsLoading && !favoriteIds.length) {
-      // If favorites were loading and now done, but no IDs, hide loader.
-      // This handles the initial favorites hook loading.
-      hideLoader();
     }
-
 
     if (favoriteIds.length === 0) {
       setFavoriteAnimes([]);
-      setLocalIsLoading(false); // No animes to fetch details for
+      setIsLoading(false);
       return;
     }
 
     const fetchFavoriteAnimes = async () => {
-      showLoader(); // Show loader before fetching details
-      setLocalIsLoading(true);
+      setIsLoading(true);
       setError(null);
       setFavoriteAnimes([]);
       try {
@@ -82,13 +73,12 @@ export default function FavoritesPage() {
         console.error("Error fetching favorite animes:", e);
         setError("Ocurrió un error al cargar tus animes favoritos.");
       } finally {
-        setLocalIsLoading(false);
-        hideLoader(); // Hide loader after fetching details
+        setIsLoading(false);
       }
     };
 
     fetchFavoriteAnimes();
-  }, [favoriteIds, favoritesLoadingHook, showLoader, hideLoader]);
+  }, [favoriteIds, favoritesLoadingHook]);
 
   return (
     <>
@@ -104,9 +94,17 @@ export default function FavoritesPage() {
           </h1>
         </header>
 
-        {localIsLoading ? ( // Global spinner is active
-          <div className="py-12 min-h-[300px]">
-            {/* Minimal placeholder, global spinner is visible */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {Array.from({ length: favoriteIds.length || 5 }).map((_, index) => (
+               <div key={index} className="w-full max-w-sm overflow-hidden shadow-lg rounded-lg">
+                <div className="aspect-square bg-muted animate-pulse"></div>
+                <div className="p-3 space-y-2">
+                  <div className="h-4 bg-muted animate-pulse rounded w-3/4"></div>
+                  <div className="h-8 bg-muted animate-pulse rounded w-full"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : error && favoriteAnimes.length === 0 ? (
           <div className="text-center py-12 min-h-[300px]">

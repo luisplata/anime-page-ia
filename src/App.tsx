@@ -9,8 +9,6 @@ import AnimeDetailPage from '@/views/anime/AnimeDetailPage';
 import EpisodePlayerPage from '@/views/ver/EpisodePlayerPage';
 import FavoritesPage from '@/views/favoritos/FavoritesPage';
 import { useState, useEffect } from 'react';
-import { useLoading } from '@/contexts/loading-context'; // Import useLoading
-import { LoadingSpinner } from '@/components/loading-spinner'; // Import LoadingSpinner
 
 const animeImages = [
   '/assets/animebell_logo_name_prototype.png',
@@ -36,7 +34,6 @@ const animeImages = [
 
 export default function App() {
   const navigate = useNavigate();
-  const { isLoading } = useLoading(); // Consume global loading state
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,7 +51,6 @@ export default function App() {
 
   return (
     <div className={`font-sans antialiased flex min-h-screen w-full flex-col bg-background text-foreground`}>
-      <LoadingSpinner isVisible={isLoading} /> {/* Render LoadingSpinner */}
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
         <Link to="/" className="flex items-center gap-2 text-lg font-semibold md:text-base">
           {randomImage && (

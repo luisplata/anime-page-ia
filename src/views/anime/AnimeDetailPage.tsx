@@ -10,28 +10,25 @@ import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck } from 'lucide-reac
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { useBookmarks } from '@/hooks/use-bookmarks';
-import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
   const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks();
-  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const [anime, setAnime] = useState<AnimeDetailType | null>(null);
-  const [localIsLoading, setLocalIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookmarkedEpisodeNumber, setBookmarkedEpisodeNumber] = useState<number | null>(null);
 
   useEffect(() => {
     if (!animeId) {
       setError("ID de anime no proporcionado.");
-      setLocalIsLoading(false);
+      setIsLoading(false);
       return;
     }
 
     const fetchAnimeDetails = async () => {
-      showLoader();
-      setLocalIsLoading(true);
+      setIsLoading(true);
       setError(null);
       setAnime(null);
       try {
@@ -47,12 +44,11 @@ export default function AnimeDetailPage() {
         console.error("Error fetching anime details:", err);
         setError(err instanceof Error ? err.message : "Error al cargar la información del anime.");
       } finally {
-        setLocalIsLoading(false);
-        hideLoader();
+        setIsLoading(false);
       }
     };
     fetchAnimeDetails();
-  }, [animeId, showLoader, hideLoader]);
+  }, [animeId]);
 
   useEffect(() => {
     if (anime && anime.id && !bookmarksLoading) {
@@ -61,10 +57,27 @@ export default function AnimeDetailPage() {
   }, [anime, bookmarksLoading, getBookmarkForAnime]);
 
 
-  if (localIsLoading) { // Global spinner is active via showLoader()
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 min-h-screen">
-        {/* Minimal placeholder, global spinner is visible */}
+        <div className="grid md:grid-cols-3 gap-8 items-start">
+          <div className="md:col-span-1 space-y-4">
+            <div className="aspect-[2/3] bg-muted animate-pulse rounded-lg"></div>
+            <div className="h-10 bg-muted animate-pulse rounded-lg"></div>
+          </div>
+          <div className="md:col-span-2 space-y-6">
+            <div className="h-12 bg-muted animate-pulse rounded-lg w-3/4"></div>
+            <div className="h-10 bg-muted animate-pulse rounded-lg w-1/4"></div>
+            <div className="space-y-2">
+              <div className="h-6 bg-muted animate-pulse rounded-lg w-1/3"></div>
+              <div className="h-20 bg-muted animate-pulse rounded-lg"></div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-6 bg-muted animate-pulse rounded-lg w-1/2"></div>
+              <div className="h-64 bg-muted animate-pulse rounded-lg"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

@@ -4,35 +4,18 @@ import { getLatestEpisodes, getLatestAddedAnime, type NewEpisode, type AnimeList
 import { AnimeCard } from '@/components/anime-card';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
-import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function HomePage() {
   const [latestEpisodes, setLatestEpisodes] = useState<NewEpisode[]>([]);
   const [latestAddedAnime, setLatestAddedAnime] = useState<AnimeListing[]>([]);
-  const [localLoadingEpisodes, setLocalLoadingEpisodes] = useState(true);
-  const [localLoadingAddedAnime, setLocalLoadingAddedAnime] = useState(true);
+  const [loadingEpisodes, setLoadingEpisodes] = useState(true);
+  const [loadingAddedAnime, setLoadingAddedAnime] = useState(true);
   const [errorEpisodes, setErrorEpisodes] = useState<string | null>(null);
   const [errorAddedAnime, setErrorAddedAnime] = useState<string | null>(null);
-  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   useEffect(() => {
-    let activeLoaders = 0;
-
-    const incrementLoader = () => {
-      activeLoaders++;
-      showLoader();
-    };
-
-    const decrementLoader = () => {
-      activeLoaders--;
-      if (activeLoaders === 0) {
-        hideLoader();
-      }
-    };
-
     const fetchLatestEpisodes = async () => {
-      incrementLoader();
-      setLocalLoadingEpisodes(true);
+      setLoadingEpisodes(true);
       setErrorEpisodes(null);
       try {
         const episodes = await getLatestEpisodes();
@@ -41,14 +24,12 @@ export default function HomePage() {
         console.error("Error fetching latest episodes:", err);
         setErrorEpisodes(err instanceof Error ? err.message : "Failed to load latest episodes.");
       } finally {
-        setLocalLoadingEpisodes(false);
-        decrementLoader();
+        setLoadingEpisodes(false);
       }
     };
 
     const fetchLatestAddedAnime = async () => {
-      incrementLoader();
-      setLocalLoadingAddedAnime(true);
+      setLoadingAddedAnime(true);
       setErrorAddedAnime(null);
       try {
         const addedAnime = await getLatestAddedAnime();
@@ -57,32 +38,19 @@ export default function HomePage() {
         console.error("Error fetching latest added anime:", err);
         setErrorAddedAnime(err instanceof Error ? err.message : "Failed to load latest added anime.");
       } finally {
-        setLocalLoadingAddedAnime(false);
-        decrementLoader();
+        setLoadingAddedAnime(false);
       }
     };
 
     fetchLatestEpisodes();
     fetchLatestAddedAnime();
-
-    // Cleanup in case component unmounts while loaders are active
-    return () => {
-      if (activeLoaders > 0) {
-        // This ensures hideLoader is called for any pending operations if the component unmounts.
-        // For simplicity, just call hideLoader enough times or reset.
-        // A more robust solution might involve cancellation tokens if fetches are long.
-        for (let i = 0; i < activeLoaders; i++) {
-          hideLoader();
-        }
-      }
-    };
-  }, [showLoader, hideLoader]);
+  }, []);
 
   const renderSection = <T extends AnimeListing | NewEpisode>(
     title: string,
     description: string,
     data: T[],
-    isLoading: boolean, // This is localLoadingEpisodes or localLoadingAddedAnime
+    isLoading: boolean,
     error: string | null,
     type: 'episode' | 'listing',
     emptyMessage: string,
@@ -97,11 +65,17 @@ export default function HomePage() {
           {description}
         </p>
       </header>
-      {isLoading ? ( // If this section's data is loading (localLoading... is true)
-        // Global spinner is active, so this section can be minimal or show structure
-        <div className="min-h-[200px] flex items-center justify-center">
-          {/* The global LoadingSpinner covers the screen, so this area will be overlaid.
-              No need for specific content here unless it's to maintain layout space. */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <div key={index} className="w-full max-w-sm overflow-hidden shadow-lg rounded-lg">
+              <div className="aspect-square bg-muted animate-pulse"></div>
+              <div className="p-3 space-y-2">
+                <div className="h-4 bg-muted animate-pulse rounded w-3/4"></div>
+                <div className="h-8 bg-muted animate-pulse rounded w-full"></div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : error ? (
          <div className="text-center py-12 text-destructive min-h-[200px]">
@@ -139,7 +113,7 @@ export default function HomePage() {
           "Capítulos del Día",
           "Los últimos episodios de tus animes favoritos, recién salidos del horno.",
           latestEpisodes,
-          localLoadingEpisodes,
+          loadingEpisodes,
           errorEpisodes,
           "episode",
           "No hay nuevos capítulos disponibles en este momento.",
@@ -152,7 +126,7 @@ export default function HomePage() {
           "Últimos Animes Agregados",
           "Descubre las series más recientes añadidas a nuestro catálogo.",
           latestAddedAnime,
-          localLoadingAddedAnime,
+          loadingAddedAnime,
           errorAddedAnime,
           "listing",
           "No hay animes recién agregados en este momento.",

@@ -12,19 +12,17 @@ import { Filter, Search, ListX, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
 import type { PaginatedAnimeResponse } from '@/services/anime-api';
-import { useLoading } from '@/contexts/loading-context'; // Re-added
 
 export default function DirectoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { showLoader, hideLoader } = useLoading(); // Re-added
 
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const searchQueryFromUrl = queryParams.get('q') || "";
   const pageFromUrl = parseInt(queryParams.get('page') || '1', 10);
 
   const [animeData, setAnimeData] = useState<PaginatedAnimeResponse | null>(null);
-  const [localIsLoading, setLocalIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [pageTitle, setPageTitle] = useState("Directorio de Anime - AniView");
@@ -39,8 +37,7 @@ export default function DirectoryPage() {
 
   useEffect(() => {
     const fetchAnimes = async () => {
-      showLoader();
-      setLocalIsLoading(true);
+      setIsLoading(true);
       setError(null);
       setAnimeData(null);
       try {
@@ -60,12 +57,11 @@ export default function DirectoryPage() {
         setError("No se pudo cargar la información de los animes.");
         setAnimeData(null);
       } finally {
-        setLocalIsLoading(false);
-        hideLoader();
+        setIsLoading(false);
       }
     };
     fetchAnimes();
-  }, [searchQueryFromUrl, pageFromUrl, showLoader, hideLoader]);
+  }, [searchQueryFromUrl, pageFromUrl]);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,7 +74,7 @@ export default function DirectoryPage() {
   };
 
   const handlePageChange = (newPage: number) => {
-    if (!animeData || newPage < 1 || newPage > animeData.lastPage || newPage === animeData.currentPage || localIsLoading) {
+    if (!animeData || newPage < 1 || newPage > animeData.lastPage || newPage === animeData.currentPage || isLoading) {
       return;
     }
     const params = new URLSearchParams(location.search);
@@ -122,10 +118,10 @@ export default function DirectoryPage() {
               className="pl-10 w-full"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              disabled={localIsLoading}
+              disabled={isLoading}
             />
           </div>
-          <Button type="submit" className="flex items-center gap-2" disabled={localIsLoading}>
+          <Button type="submit" className="flex items-center gap-2" disabled={isLoading}>
             <Search className="h-5 w-5" />
             <span>Buscar</span>
           </Button>
@@ -136,9 +132,17 @@ export default function DirectoryPage() {
         </form>
         <Separator className="my-6" />
 
-        {localIsLoading ? ( // Global spinner is active
-          <div className="py-12 min-h-[300px]">
-            {/* Minimal placeholder, global spinner is visible */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {Array.from({ length: 10 }).map((_, index) => (
+              <div key={index} className="w-full max-w-sm overflow-hidden shadow-lg rounded-lg">
+                <div className="aspect-square bg-muted animate-pulse"></div>
+                <div className="p-3 space-y-2">
+                  <div className="h-4 bg-muted animate-pulse rounded w-3/4"></div>
+                  <div className="h-8 bg-muted animate-pulse rounded w-full"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="text-center py-12 text-destructive min-h-[300px]">{error}</div>
@@ -153,7 +157,7 @@ export default function DirectoryPage() {
               <div className="flex items-center justify-center space-x-1 mt-8 flex-wrap gap-y-2">
                 {paginationLinks.map((link, index) => {
                   let label = link.label;
-                  let isDisabled = !link.url || localIsLoading || link.active;
+                  let isDisabled = !link.url || isLoading || link.active;
                   let targetPage: number | null = null;
 
                   if (link.url) {
