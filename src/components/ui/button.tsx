@@ -38,23 +38,42 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
-  isLoading?: boolean // Added isLoading prop
+  isLoading?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, isLoading = false, children, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+    const Comp = asChild ? Slot : "button";
+    const actualDisabled = isLoading || props.disabled;
+
+    if (asChild) {
+      // When asChild is true, Slot requires a single child.
+      // We pass down the disabled state, but don't render the Loader2 here.
+      // The child component is responsible for its own content.
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          disabled={actualDisabled}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
+
+    // Regular button rendering
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={isLoading || props.disabled}
+        disabled={actualDisabled}
         {...props}
       >
         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {children}
-      </Comp>
-    )
+      </button>
+    );
   }
 )
 Button.displayName = "Button"
