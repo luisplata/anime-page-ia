@@ -25,10 +25,10 @@ jobs:
       - name: ⚙️ Construir la aplicación
         run: npm run build
 
-      - name: 🔍 Verificar si la carpeta build existe
-        run: ls -la
+      - name: 🔍 Verificar si la carpeta dist existe
+        run: ls -la dist
 
-      - name: 🗜️ Comprimir el build
+      - name: 🗜️ Comprimir el dist
         run: |
           cd dist
           zip -r ../build.zip .
