@@ -2,7 +2,7 @@
 'use client';
 
 import type React from 'react';
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 interface LoadingContextType {
   isLoading: boolean;
@@ -16,15 +16,29 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
   const [loadingCount, setLoadingCount] = useState(0);
 
   const showLoader = useCallback(() => {
-    setLoadingCount((count) => count + 1);
+    setLoadingCount((count) => {
+      const newCount = count + 1;
+      // console.log("LoadingContext: showLoader called, new count:", newCount);
+      return newCount;
+    });
   }, []);
 
   const hideLoader = useCallback(() => {
-    setLoadingCount((count) => Math.max(0, count - 1));
+    setLoadingCount((count) => {
+      const newCount = Math.max(0, count - 1);
+      // console.log("LoadingContext: hideLoader called, new count:", newCount);
+      return newCount;
+    });
   }, []);
 
+  const isLoading = loadingCount > 0;
+
+  useEffect(() => {
+    // console.log("LoadingContext: isLoading state changed to:", isLoading);
+  }, [isLoading]);
+
   return (
-    <LoadingContext.Provider value={{ isLoading: loadingCount > 0, showLoader, hideLoader }}>
+    <LoadingContext.Provider value={{ isLoading, showLoader, hideLoader }}>
       {children}
     </LoadingContext.Provider>
   );
@@ -37,3 +51,4 @@ export function useLoading() {
   }
   return context;
 }
+

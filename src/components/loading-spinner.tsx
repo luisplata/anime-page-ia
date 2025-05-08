@@ -5,9 +5,11 @@ interface LoadingSpinnerProps {
 
 export function LoadingSpinner({ isVisible }: LoadingSpinnerProps) {
   if (!isVisible) {
+    // console.log("LoadingSpinner: Becoming hidden"); // Log before returning null
     return null;
   }
 
+  // console.log("LoadingSpinner: Becoming visible"); // Log when it's about to be rendered
   return (
     <div
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm"
@@ -26,3 +28,4 @@ export function LoadingSpinner({ isVisible }: LoadingSpinnerProps) {
     </div>
   );
 }
+
