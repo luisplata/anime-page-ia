@@ -5,9 +5,37 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AniView</title>
-    <script type="module" crossorigin src="/assets/index-Cx7RoW-Q.js"></script>
+
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="AniView" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AniView" />
+    <meta name="description" content="Tu portal para ver anime online. Disfruta de los últimos episodios y descubre nuevas series." />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- MS Tile - Handled by manifest icons usually, but can be added for specific sizes -->
+    <!-- <meta name="msapplication-config" content="/browserconfig.xml" /> -->
+    <meta name="msapplication-TileColor" content="#008080" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#008080" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1A1A" />
+
+
+    <!-- Fallback theme-color, vite-plugin-pwa will inject one from manifest -->
+    <meta name="theme-color" content="#008080" />
+
+    <!-- Link to manifest.json - vite-plugin-pwa will handle this -->
+    <!-- <link rel="manifest" href="/manifest.json"> -->
+
+    <!-- Apple Touch Icons - vite-plugin-pwa will generate these from manifest icons -->
+    <!-- <link rel="apple-touch-icon" href="/icons/icon-192x192.png"> -->
+
+    <script type="module" crossorigin src="/assets/index-3rEYS2gc.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-DG40Q8MJ.css">
-  </head>
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
