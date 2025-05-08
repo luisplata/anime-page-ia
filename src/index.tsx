@@ -10,7 +10,7 @@ import { BookmarksProvider } from '@/hooks/use-bookmarks';
 import ClientUuidProvider from '@/components/client-uuid-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { HelmetProvider } from 'react-helmet-async';
-import { LoadingProvider } from '@/contexts/loading-context'; // Import LoadingProvider
+import { LoadingProvider } from '@/contexts/loading-context';
 
 const rootElement = document.getElementById('root');
 
@@ -25,7 +25,7 @@ if (rootElement) {
             enableSystem
             disableTransitionOnChange
           >
-            <LoadingProvider> {/* Add LoadingProvider here */}
+            <LoadingProvider>
               <FavoritesProvider>
                 <BookmarksProvider>
                   <ClientUuidProvider />
@@ -42,3 +42,6 @@ if (rootElement) {
 } else {
   console.error("Failed to find the root element. The application cannot be mounted.");
 }
+
+// vite-plugin-pwa with registerType: 'autoUpdate' will handle SW registration.
+// No manual registration code needed here unless more control is desired.
