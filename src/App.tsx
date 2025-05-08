@@ -52,18 +52,10 @@ export default function App() {
 
   const handleHomeNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (location.pathname === '/') {
-      // If already on home page, prevent default navigation by Link
-      // and trigger refresh by changing the key
       event.preventDefault();
       setHomePageKey(Date.now());
-      // Optionally, scroll to top
       window.scrollTo(0, 0);
-      // If we were using react-router's navigate, it would be:
-      // navigate('/', { replace: true, state: { refresh: Date.now() } }); 
-      // but changing key is simpler for re-mount.
     }
-    // If not on home page, Link component will handle navigation normally.
-    // HomePage will mount fresh (or re-mount if key changes) and fetch data.
   };
 
   return (
@@ -77,7 +69,7 @@ export default function App() {
           {randomImage && (
             <img src={randomImage} alt="AnimeBell Logo" className="h-8 w-8 object-cover rounded-full mr-2" />
           )}
-          <h1 className="text-xl font-bold">AnimeBell</h1>
+          <h1 className="text-xl font-bold">AniView</h1>
         </Link>
         <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 ml-auto">
           <Link 
@@ -123,7 +115,7 @@ export default function App() {
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <Routes>
+        <Routes future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Route path="/" element={<HomePage key={homePageKey} />} />
           <Route path="/directorio" element={<DirectoryPage />} />
           <Route path="/anime/:animeId" element={<AnimeDetailPage />} />
