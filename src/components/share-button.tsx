@@ -31,7 +31,7 @@ export function ShareButton({
 
   React.useEffect(() => {
     setIsClient(true);
-    if (typeof navigator !== 'undefined' && navigator.share) {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       setCanNativeShare(true);
     }
   }, []);

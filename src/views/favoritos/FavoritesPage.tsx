@@ -18,7 +18,7 @@ function transformDetailToAnimeListing(detail: AnimeDetail): AnimeListing {
 }
 
 export default function FavoritesPage() {
-  const { favoriteIds, addFavorite, isLoading: favoritesLoadingHook, removeFavorite: removeFavoriteFromHook } = useFavorites();
+  const { favoriteIds, addFavorite, isLoading: favoritesLoadingHook } = useFavorites();
   const { toast } = useToast(); // Initialize toast
   const fileInputRef = useRef<HTMLInputElement>(null);
 

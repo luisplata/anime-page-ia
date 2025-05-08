@@ -115,7 +115,7 @@ export default function App() {
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <Routes future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
           <Route path="/" element={<HomePage key={homePageKey} />} />
           <Route path="/directorio" element={<DirectoryPage />} />
           <Route path="/anime/:animeId" element={<AnimeDetailPage />} />

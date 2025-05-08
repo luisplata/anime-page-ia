@@ -6,8 +6,8 @@ import EpisodePlayerClient from '@/components/episode-player-client';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { Button } from '@/components/ui/button';
 import { Helmet } from 'react-helmet-async';
-import { AlertTriangle, ArrowLeft, ListVideo, Bookmark, BookmarkCheck, Loader2, Share2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, ArrowLeft, ListVideo, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Remove Share2 import
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBookmarks } from '@/hooks/use-bookmarks';
 import { ShareButton } from '@/components/share-button'; // Import ShareButton

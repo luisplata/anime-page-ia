@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck, Share2 } from 'lucide-react';
+import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { useBookmarks } from '@/hooks/use-bookmarks';
@@ -14,12 +14,11 @@ import { ShareButton } from '@/components/share-button'; // Import ShareButton
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
-  const { getBookmarkForAnime, isLoading: bookmarksLoading } = useBookmarks();
-
-  const [anime, setAnime] = useState<AnimeDetailType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { getBookmarkForAnime } = useBookmarks();
   const [bookmarkedEpisodeNumber, setBookmarkedEpisodeNumber] = useState<number | null>(null);
+  const [anime, setAnime] = useState<AnimeDetailType | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // Keep loading state
+  const [error, setError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState('');
 
   useEffect(() => {
@@ -33,6 +32,7 @@ export default function AnimeDetailPage() {
       setError("ID de anime no proporcionado.");
       setIsLoading(false);
       return;
+
     }
 
     const fetchAnimeDetails = async () => {
@@ -55,14 +55,17 @@ export default function AnimeDetailPage() {
         setIsLoading(false);
       }
     };
+
+    const fetchBookmark = async () => {
+      const bookmark = await getBookmarkForAnime(animeId);
+      if (bookmark) {
+        setBookmarkedEpisodeNumber(bookmark);
+      }
+    };
+
+    fetchBookmark();
     fetchAnimeDetails();
   }, [animeId]);
-
-  useEffect(() => {
-    if (anime && anime.id && !bookmarksLoading) {
-        setBookmarkedEpisodeNumber(getBookmarkForAnime(anime.id));
-    }
-  }, [anime, bookmarksLoading, getBookmarkForAnime]);
 
 
   if (isLoading) {
@@ -133,22 +136,24 @@ export default function AnimeDetailPage() {
                 />
               </div>
             </Card>
-             {bookmarkedEpisodeNumber && (
-                <Card className="mt-4 bg-accent/10 border-accent shadow-md rounded-lg">
+             {getBookmarkForAnime(anime.id) && (
+ bookmarkedEpisodeNumber !== null && ( // Add this check
+ <Card className="mt-4 bg-accent/10 border-accent shadow-md rounded-lg">
                     <CardContent className="p-3 text-center">
                         <div className="flex items-center justify-center gap-2 text-accent-foreground">
                             <BookmarkCheck className="h-5 w-5" />
                             <p className="text-sm font-medium">
                                 Continuar viendo: Episodio {bookmarkedEpisodeNumber}
                             </p>
-                        </div>
+ </div>
                          <Button variant="link" size="sm" asChild className="mt-1 text-accent-foreground hover:text-accent-foreground/80">
                             <Link to={`/ver/${encodedAnimeId}/${bookmarkedEpisodeNumber}`}>
                                 Ir al episodio
                             </Link>
                         </Button>
                     </CardContent>
-                </Card>
+ </Card>
+ )
             )}
           </div>
 
@@ -185,7 +190,7 @@ export default function AnimeDetailPage() {
                 <ScrollArea className="h-[400px] pr-4">
                   <ul className="space-y-3">
                     {anime.episodes.length > 0 ? anime.episodes.map((episode: Episode) => {
-                      const isBookmarked = episode.episodeNumber === bookmarkedEpisodeNumber;
+                      const isBookmarked = bookmarkedEpisodeNumber !== null && episode.episodeNumber === bookmarkedEpisodeNumber;
                       return (
                         <li key={episode.episodeNumber}>
                           <Button
