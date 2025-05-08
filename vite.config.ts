@@ -14,8 +14,8 @@ export default defineConfig({
       // Assets in /public/assets and /public/icons will be picked up by workbox.globPatterns.
       includeAssets: ['favicon.ico'], 
       manifest: {
-        name: 'AniView',
-        short_name: 'AniView',
+        name: 'AnimeBell',
+        short_name: 'AnimeBell',
         description: 'Tu portal para ver anime online. Disfruta de los últimos episodios y descubre nuevas series.',
         theme_color: '#008080', // Teal - matches accent in light mode
         background_color: '#eeeeee', // Light Gray - matches background in light mode

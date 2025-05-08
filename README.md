@@ -1,5 +1,5 @@
 
-# Firebase Studio - React Anime App
+# Firebase Studio - React AnimeBell App
 
 This is a React starter application built with Vite.
 
