@@ -89,7 +89,6 @@ export default function EpisodePlayerPage() {
     );
   }
   
-  const effectiveAnimeId = anime?.id || animeId || "unknown-anime";
   const effectiveAnimeTitle = anime?.title || "Anime Desconocido";
   const effectiveEpisodeNumber = currentEpisode?.episodeNumber || episodeNumber || 0;
 
@@ -100,7 +99,7 @@ export default function EpisodePlayerPage() {
         <Helmet>
           <title>{pageTitle} - AniView</title>
         </Helmet>
-        <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col items-center justify-center">
+        <div className="container mx-auto px-4 py-8 text-center min-h-screen flex flex-col items-center justify-center max-w-md">
           <AlertTriangle className="mx-auto h-16 w-16 text-destructive mb-4" />
           <h1 className="mt-4 text-3xl font-bold text-destructive">{pageTitle}</h1>
           <p className="mt-3 text-lg text-muted-foreground">

@@ -1,8 +1,4 @@
 
-'use client';
-
-import type React from 'react';
-
 interface LoadingSpinnerProps {
   isVisible: boolean;
 }
