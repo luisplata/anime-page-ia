@@ -1,4 +1,3 @@
-
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -36,7 +35,7 @@ interface ApiEpisodeSource {
 interface ApiEpisodeListItem {
   id: number; // Episode ID
   anime_id: number;
-  number: number; // Episode number
+  number: number | string; // Episode number (can be string from API)
   title: string; // Episode title
   created_at: string;
   updated_at: string;
@@ -98,7 +97,7 @@ type ApiAnimesSearchResponse = BasePaginatedResponse<ApiAnimeListItem>;
 interface ApiAnimeEpisodeDetail { // Episode structure within AnimeDetail
   id: number; // Episode ID
   anime_id: number;
-  number: number;
+  number: number | string; // Can be string from API
   title?: string;
   created_at: string;
   updated_at: string;
@@ -254,23 +253,26 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
     }
     return response.data
       .map((ep): NewEpisode | null => {
+        const episodeNumberNumeric = typeof ep.number === 'string' ? parseInt(ep.number, 10) : ep.number;
+
         if (
           !ep.anime ||
           typeof ep.anime.slug !== 'string' ||
           typeof ep.anime.title !== 'string' ||
           typeof ep.anime.image !== 'string' || 
-          typeof ep.number !== 'number'
+          (typeof ep.number !== 'number' && typeof ep.number !== 'string') || // Allow string initially
+          isNaN(episodeNumberNumeric) // Check if parsed number is valid
         ) {
           console.warn('Skipping episode due to incomplete/invalid anime data from API:', ep);
           return null;
         }
         const img = ep.anime.image;
-        const placeholder = `https://picsum.photos/seed/ep-${ep.anime.slug || ep.anime.id || 'unknown'}-${ep.number}/300/300`;
+        const placeholder = `https://picsum.photos/seed/ep-${ep.anime.slug || ep.anime.id || 'unknown'}-${episodeNumberNumeric}/300/300`;
         
         return {
           animeId: ep.anime.slug,
           animeTitle: ep.anime.title,
-          episodeNumber: ep.number,
+          episodeNumber: episodeNumberNumeric,
           thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
         };
       })
@@ -360,15 +362,24 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
         ? `Información sobre ${title}.` 
         : (anime.description || "No hay descripción disponible."),
       coverUrl: (coverImg && coverImg.trim() !== '' && !coverImg.includes('https://example.com/missing.jpg')) ? coverImg : defaultCover,
-      episodes: (Array.isArray(anime.episodes) ? anime.episodes : []).map((ep): Episode => ({
-        episodeNumber: ep.number,
-        streamingSources: (Array.isArray(ep.sources) ? ep.sources : []).map(source => ({
-          name: source.name || 'Fuente Desconocida',
-          url: source.url || 'https://example.com/placeholder-stream',
-          quality: source.quality,
-        })).filter(s => s.url && s.url !== 'https://example.com/placeholder-stream'),
-        title: ep.title || `Episodio ${ep.number}`,
-      })).sort((a, b) => a.episodeNumber - b.episodeNumber),
+      episodes: (Array.isArray(anime.episodes) ? anime.episodes : []).map((ep): Episode => {
+        const episodeNumberNumeric = typeof ep.number === 'string' ? parseInt(ep.number, 10) : ep.number;
+        if (isNaN(episodeNumberNumeric)) {
+            console.warn(`Invalid episode number for anime ${animeSlug}, episode id ${ep.id}:`, ep.number);
+            // Potentially skip or assign a default, here we skip by returning null and filtering later
+            // However, for now, we'll assume the outer check handles this if map returns invalid data
+        }
+        return {
+            episodeNumber: isNaN(episodeNumberNumeric) ? -1 : episodeNumberNumeric, // Use -1 or handle error
+            streamingSources: (Array.isArray(ep.sources) ? ep.sources : []).map(source => ({
+            name: source.name || 'Fuente Desconocida',
+            url: source.url || 'https://example.com/placeholder-stream',
+            quality: source.quality,
+            })).filter(s => s.url && s.url !== 'https://example.com/placeholder-stream'),
+            title: ep.title || `Episodio ${episodeNumberNumeric}`,
+        }
+      }).filter(ep => ep.episodeNumber !== -1) // Filter out episodes with invalid numbers
+      .sort((a, b) => a.episodeNumber - b.episodeNumber),
     };
   } catch (error) {
     console.error(`Failed to fetch details for anime ${animeSlug}:`, error);
@@ -403,3 +414,4 @@ export async function searchAnimes(query: string, page: number = 1): Promise<Pag
     return defaultPaginatedResponse;
   }
 }
+
