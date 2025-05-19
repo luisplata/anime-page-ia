@@ -37,64 +37,88 @@ export default function PrivacyPolicyPage() {
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <Card className="shadow-lg rounded-lg">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-center text-primary">Políticas de Privacidad</CardTitle>
+            <CardTitle className="text-3xl font-bold text-center text-primary">Políticas de Privacidad de AnimeBell</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 text-muted-foreground leading-relaxed">
-            <p className="text-sm text-center">Última actualización: {new Date().toLocaleDateString()}</p>
+            <p className="text-sm text-center">Última actualización: {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             
             <section>
               <h2 className="text-xl font-semibold text-foreground mb-2">1. Introducción</h2>
-              <p>Bienvenido/a a AnimeBell. Nos tomamos muy en serio tu privacidad. Esta Política de Privacidad describe cómo recopilamos, usamos, procesamos y divulgamos tu información, incluida la información personal, en conjunto con tu acceso y uso de AnimeBell.</p>
+              <p>Bienvenido/a a AnimeBell. Tu privacidad es importante para nosotros. Esta Política de Privacidad explica cómo recopilamos, usamos, almacenamos, procesamos y divulgamos tu información cuando accedes y utilizas nuestro sitio web AnimeBell (en adelante, "el Sitio").</p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold text-foreground mb-2">2. Información que Recopilamos</h2>
-              <p>Recopilamos un identificador único de cliente (Client UUID) que se genera y almacena en tu dispositivo. Este UUID se utiliza para:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Rastrear el comportamiento del usuario de forma anónima para mejorar la funcionalidad del sitio.</li>
-                <li>Permitir funcionalidades como "Favoritos" y "Marcadores de Episodios" que se almacenan localmente en tu navegador.</li>
+              <p>En AnimeBell, la información que recopilamos está diseñada para mejorar tu experiencia en el sitio. Esto incluye:</p>
+              <ul className="list-disc list-inside ml-4 space-y-2">
+                <li>
+                  <strong>Identificador Único de Cliente (Client UUID):</strong> Al visitar el Sitio por primera vez, generamos y almacenamos un identificador único anónimo (Client UUID) en tu navegador (a través de `localStorage` y una cookie). Este UUID nos ayuda a:
+                  <ul className="list-circle list-inside ml-6 mt-1 space-y-1">
+                    <li>Permitir el funcionamiento de características como "Favoritos" y "Marcadores de Episodios", que se guardan localmente en tu dispositivo.</li>
+                    <li>Realizar análisis básicos sobre cómo los usuarios interactúan con el Sitio de forma agregada y anónima para mejorar su funcionalidad y contenido (por ejemplo, a través de herramientas de analítica web).</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Datos de Favoritos y Marcadores:</strong> Cuando utilizas las funciones de "Favoritos" o "Marcar como actual" un episodio, esta información se guarda directamente en el almacenamiento local (`localStorage`) de tu navegador. Estos datos no se envían ni se almacenan en nuestros servidores.
+                </li>
+                <li>
+                  <strong>Información de Uso y Cookies:</strong> Podemos recopilar automáticamente cierta información sobre tu interacción con el Sitio mediante cookies y tecnologías similares. Esto puede incluir tu dirección IP (anonimizada cuando sea posible), tipo de navegador, sistema operativo, páginas visitadas dentro de AnimeBell, y la duración de tu visita. Utilizamos esta información principalmente para análisis y para asegurar el correcto funcionamiento del Sitio (por ejemplo, para recordar tus preferencias de tema).
+                </li>
               </ul>
-              <p>No recopilamos información personal identificable como tu nombre, dirección de correo electrónico, o dirección IP directamente a través de este UUID, a menos que decidas proporcionarla voluntariamente (por ejemplo, si implementamos funciones de cuenta de usuario en el futuro).</p>
+              <p>No recopilamos directamente información personal identificable como tu nombre completo o dirección de correo electrónico a través de estas funciones, ya que el Sitio actualmente no requiere la creación de cuentas de usuario.</p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold text-foreground mb-2">3. Cómo Usamos Tu Información</h2>
-              <p>El Client UUID y los datos de favoritos/marcadores almacenados localmente se utilizan exclusivamente para:</p>
+              <p>La información recopilada se utiliza para los siguientes propósitos:</p>
               <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Personalizar tu experiencia en AnimeBell.</li>
-                <li>Analizar el uso del sitio para realizar mejoras.</li>
-                <li>Proporcionar y mantener las funcionalidades de la aplicación.</li>
+                <li><strong>Proveer y mejorar el Sitio:</strong> Para operar el Sitio, mantener su seguridad y mejorar sus características y funcionalidades.</li>
+                <li><strong>Personalizar tu experiencia:</strong> Para recordar tus animes favoritos, los episodios que has marcado, y tus preferencias de tema (claro/oscuro), todo almacenado localmente.</li>
+                <li><strong>Análisis y estadísticas:</strong> Para entender cómo los usuarios utilizan el Sitio, qué contenido es popular, y cómo podemos mejorar la navegación y la oferta de contenido. Esto se hace de forma agregada y anónima.</li>
               </ul>
             </section>
             
             <section>
-              <h2 className="text-xl font-semibold text-foreground mb-2">4. Intercambio y Divulgación de Información</h2>
-              <p>No vendemos, intercambiamos ni transferimos de ningún otro modo tu Client UUID o datos de uso anónimos a terceros. Los datos de favoritos y marcadores se almacenan únicamente en tu navegador y no se envían a nuestros servidores a menos que se implemente una función de sincronización explícita y tú la actives.</p>
-              <p>Este sitio no almacena ningún video en sus servidores. Todo el contenido es proporcionado por terceros no afiliados. No somos responsables de las prácticas de privacidad de estos sitios de terceros.</p>
+              <h2 className="text-xl font-semibold text-foreground mb-2">4. Contenido de Terceros y Enlaces Externos</h2>
+              <p>AnimeBell proporciona enlaces a contenido de anime (videos) que está alojado en servidores de terceros. No almacenamos ningún video en nuestros propios servidores. Esta Política de Privacidad solo se aplica a AnimeBell y no cubre las prácticas de privacidad de estos sitios de terceros. Te recomendamos leer las políticas de privacidad de cualquier sitio externo que visites.</p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-foreground mb-2">5. Almacenamiento de Datos</h2>
-              <p>Tu Client UUID, lista de favoritos y marcadores de episodios se almacenan localmente en tu navegador utilizando localStorage. Puedes borrar estos datos limpiando el almacenamiento de tu navegador para este sitio.</p>
+              <h2 className="text-xl font-semibold text-foreground mb-2">5. Almacenamiento y Seguridad de Datos</h2>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>El Client UUID, tus animes favoritos y los marcadores de episodios se almacenan localmente en tu navegador utilizando `localStorage` y una cookie para el UUID. Puedes eliminar estos datos borrando las cookies y los datos de sitios web de tu navegador para AnimeBell.</li>
+                <li>Tomamos medidas razonables para proteger la información recopilada y el funcionamiento del Sitio. Sin embargo, ningún sistema es 100% seguro. La seguridad de tus datos locales (favoritos, marcadores) también depende de la seguridad de tu propio dispositivo y navegador.</li>
+              </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-foreground mb-2">6. Seguridad</h2>
-              <p>Nos esforzamos por proteger tu información. Sin embargo, dado que el Client UUID y los datos asociados se almacenan localmente, la seguridad de esta información también depende de la seguridad de tu dispositivo y navegador.</p>
+              <h2 className="text-xl font-semibold text-foreground mb-2">6. Cookies y Tecnologías Similares</h2>
+              <p>Utilizamos cookies para:</p>
+               <ul className="list-disc list-inside ml-4 space-y-1">
+                  <li>Almacenar tu Client UUID.</li>
+                  <li>Recordar tus preferencias de tema (claro/oscuro/sistema).</li>
+                  <li>Facilitar el funcionamiento de herramientas de análisis web (como Google Analytics, si se utiliza).</li>
+               </ul>
+              <p>Puedes configurar tu navegador para rechazar todas o algunas cookies, o para alertarte cuando los sitios web establezcan o accedan a cookies. Si deshabilitas o rechazas las cookies, ten en cuenta que algunas partes de este Sitio pueden volverse inaccesibles o no funcionar correctamente (por ejemplo, los favoritos y marcadores).</p>
+            </section>
+            
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-2">7. Servicios de Terceros (Analítica)</h2>
+              <p>Podemos utilizar servicios de análisis de terceros (como Google Analytics) para ayudarnos a comprender el uso del Sitio. Estos servicios pueden recopilar información enviada por tu navegador como parte de una solicitud de página web, como cookies o tu dirección IP (generalmente anonimizada). Te recomendamos revisar las políticas de privacidad de estos servicios para más información sobre sus prácticas.</p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-foreground mb-2">7. Cookies</h2>
-              <p>Utilizamos una cookie para almacenar tu Client UUID y hacerlo accesible. También podemos utilizar cookies para la funcionalidad básica del sitio y para recordar tus preferencias (como el tema oscuro/claro).</p>
+              <h2 className="text-xl font-semibold text-foreground mb-2">8. Privacidad de Menores</h2>
+              <p>AnimeBell no está dirigido a personas menores de 13 años (o la edad mínima aplicable en tu jurisdicción). No recopilamos intencionadamente información personal de menores. Si eres padre/madre o tutor y crees que tu hijo/a nos ha proporcionado información personal, por favor contáctanos.</p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-foreground mb-2">8. Cambios a esta Política de Privacidad</h2>
-              <p>Podemos actualizar nuestra Política de Privacidad de vez en cuando. Te notificaremos cualquier cambio publicando la nueva Política de Privacidad en esta página. Se te aconseja revisar esta Política de Privacidad periódicamente para cualquier cambio.</p>
+              <h2 className="text-xl font-semibold text-foreground mb-2">9. Cambios a esta Política de Privacidad</h2>
+              <p>Podemos actualizar nuestra Política de Privacidad de vez en cuando. Te notificaremos cualquier cambio publicando la nueva Política de Privacidad en esta página y actualizando la fecha de "Última actualización" en la parte superior. Te recomendamos revisar esta Política de Privacidad periódicamente.</p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-foreground mb-2">9. Contáctanos</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-2">10. Contacto</h2>
               <p>Si tienes alguna pregunta sobre esta Política de Privacidad, puedes contactarnos en: <a href="mailto:info@bellseboss.com" className="text-accent hover:underline">info@bellseboss.com</a>.</p>
             </section>
           </CardContent>
@@ -103,3 +127,5 @@ export default function PrivacyPolicyPage() {
     </>
   );
 }
+
+    
