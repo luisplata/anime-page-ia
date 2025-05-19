@@ -1,14 +1,16 @@
 
-import { Mail, ExternalLink } from 'lucide-react';
+import { Mail, ExternalLink, FileText, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="bg-muted/50 text-muted-foreground py-8 border-t">
-      <div className="container mx-auto px-4 text-center sm:text-left">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-          <div>
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          <div className="text-center md:text-left">
             <p className="text-sm">
               &copy; {currentYear} AnimeBell. Todos los derechos reservados.
             </p>
@@ -24,7 +26,21 @@ export function Footer() {
               </a>
             </p>
           </div>
-          <div className="sm:text-right">
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
+            <Button variant="link" asChild className="text-muted-foreground hover:text-accent p-1 h-auto">
+              <Link to="/politicas-de-privacidad" className="inline-flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4" /> Políticas de Privacidad
+              </Link>
+            </Button>
+            <Button variant="link" asChild className="text-muted-foreground hover:text-accent p-1 h-auto">
+              <Link to="/terminos-y-condiciones" className="inline-flex items-center gap-1.5">
+                <FileText className="h-4 w-4" /> Términos y Condiciones
+              </Link>
+            </Button>
+          </div>
+
+          <div className="text-center md:text-right">
             <a
               href="mailto:info@bellseboss.com"
               className="text-sm text-accent hover:text-accent/80 inline-flex items-center gap-1.5"

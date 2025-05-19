@@ -8,7 +8,9 @@ import DirectoryPage from '@/views/directorio/DirectoryPage';
 import AnimeDetailPage from '@/views/anime/AnimeDetailPage';
 import EpisodePlayerPage from '@/views/ver/EpisodePlayerPage';
 import FavoritesPage from '@/views/favoritos/FavoritesPage';
-import { Footer } from '@/components/Footer'; // Import Footer
+import PrivacyPolicyPage from '@/views/legal/PrivacyPolicyPage'; // Added import
+import TermsAndConditionsPage from '@/views/legal/TermsAndConditionsPage'; // Added import
+import { Footer } from '@/components/Footer'; 
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 
@@ -48,6 +50,8 @@ export default function App() {
 
   useEffect(() => {
     setCurrentUrl(window.location.href);
+    // Scroll to top on route change
+    window.scrollTo(0, 0);
   }, [location]);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -60,10 +64,15 @@ export default function App() {
   const handleHomeNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (location.pathname === '/') {
       event.preventDefault();
-      setHomePageKey(Date.now());
+      setHomePageKey(Date.now()); // This will re-mount HomePage and trigger data fetching
       window.scrollTo(0, 0);
+    } else {
+      // For other cases, let the Link component handle navigation
+      // but still scroll to top.
+       window.scrollTo(0, 0);
     }
   };
+  
 
   const defaultSocialImage = 'https://picsum.photos/seed/animebell-social/1200/630';
   const siteName = "AnimeBell";
@@ -149,6 +158,8 @@ export default function App() {
           <Route path="/anime/:animeId" element={<AnimeDetailPage />} />
           <Route path="/ver/:animeId/:episodeNumber" element={<EpisodePlayerPage />} />
           <Route path="/favoritos" element={<FavoritesPage />} />
+          <Route path="/politicas-de-privacidad" element={<PrivacyPolicyPage />} />
+          <Route path="/terminos-y-condiciones" element={<TermsAndConditionsPage />} />
         </Routes>
       </main>
       <Footer />
