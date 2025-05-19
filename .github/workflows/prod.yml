@@ -4,7 +4,7 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-      - main  # Cambia esto si usas otra rama
+      - deploy  # Cambia esto si usas otra rama
 
 jobs:
   export-and-deploy:
