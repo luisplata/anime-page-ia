@@ -1,3 +1,4 @@
+
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -94,6 +95,22 @@ type ApiAnimesSearchResponse = BasePaginatedResponse<ApiAnimeListItem>;
 
 
 // For /api/anime/{slug}
+interface ApiAlterName {
+    id: number;
+    anime_id: string; // API seems to send string here
+    name: string;
+    created_at: string;
+    updated_at: string;
+}
+
+interface ApiGenre {
+    id: number;
+    anime_id: string; // API seems to send string here
+    genre: string;
+    created_at: string;
+    updated_at: string;
+}
+
 interface ApiAnimeEpisodeDetail { // Episode structure within AnimeDetail
   id: number; // Episode ID
   anime_id: number;
@@ -113,6 +130,8 @@ interface ApiAnimeDetailResponse {
   created_at: string;
   updated_at: string;
   episodes: ApiAnimeEpisodeDetail[];
+  alter_names: ApiAlterName[];
+  genres: ApiGenre[];
 }
 
 
@@ -135,6 +154,8 @@ export interface AnimeDetail {
   description: string;
   coverUrl: string;
   episodes: Episode[];
+  genres: string[];
+  alternativeNames: string[];
 }
 
 export interface AnimeListing { // Used for directory, search results, latest added
@@ -362,15 +383,15 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
         ? `Información sobre ${title}.` 
         : (anime.description || "No hay descripción disponible."),
       coverUrl: (coverImg && coverImg.trim() !== '' && !coverImg.includes('https://example.com/missing.jpg')) ? coverImg : defaultCover,
+      genres: (Array.isArray(anime.genres) ? anime.genres : []).map(g => g.genre),
+      alternativeNames: (Array.isArray(anime.alter_names) ? anime.alter_names : []).map(an => an.name),
       episodes: (Array.isArray(anime.episodes) ? anime.episodes : []).map((ep): Episode => {
         const episodeNumberNumeric = typeof ep.number === 'string' ? parseInt(ep.number, 10) : ep.number;
         if (isNaN(episodeNumberNumeric)) {
             console.warn(`Invalid episode number for anime ${animeSlug}, episode id ${ep.id}:`, ep.number);
-            // Potentially skip or assign a default, here we skip by returning null and filtering later
-            // However, for now, we'll assume the outer check handles this if map returns invalid data
         }
         return {
-            episodeNumber: isNaN(episodeNumberNumeric) ? -1 : episodeNumberNumeric, // Use -1 or handle error
+            episodeNumber: isNaN(episodeNumberNumeric) ? -1 : episodeNumberNumeric,
             streamingSources: (Array.isArray(ep.sources) ? ep.sources : []).map(source => ({
             name: source.name || 'Fuente Desconocida',
             url: source.url || 'https://example.com/placeholder-stream',
@@ -378,7 +399,7 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
             })).filter(s => s.url && s.url !== 'https://example.com/placeholder-stream'),
             title: ep.title || `Episodio ${episodeNumberNumeric}`,
         }
-      }).filter(ep => ep.episodeNumber !== -1) // Filter out episodes with invalid numbers
+      }).filter(ep => ep.episodeNumber !== -1)
       .sort((a, b) => a.episodeNumber - b.episodeNumber),
     };
   } catch (error) {
@@ -414,4 +435,3 @@ export async function searchAnimes(query: string, page: number = 1): Promise<Pag
     return defaultPaginatedResponse;
   }
 }
-

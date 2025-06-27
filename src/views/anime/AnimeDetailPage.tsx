@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck } from 'lucide-react';
+import { PlaySquare, ListVideo, AlertTriangle, BookmarkCheck, Clapperboard, Tag } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { AnimeFavoriteButton } from '@/components/anime-favorite-button';
 import { useBookmarks } from '@/hooks/use-bookmarks';
 import { ShareButton } from '@/components/share-button';
+import { Badge } from '@/components/ui/badge';
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams<{ animeId: string }>();
@@ -81,10 +82,12 @@ export default function AnimeDetailPage() {
           </div>
           <div className="md:col-span-2 space-y-6">
             <div className="h-12 bg-muted animate-pulse rounded-lg w-3/4"></div>
+            <div className="h-6 bg-muted animate-pulse rounded-lg w-1/2"></div>
             <div className="h-10 bg-muted animate-pulse rounded-lg w-1/4"></div>
             <div className="space-y-2">
               <div className="h-6 bg-muted animate-pulse rounded-lg w-1/3"></div>
               <div className="h-20 bg-muted animate-pulse rounded-lg"></div>
+              <div className="h-10 bg-muted animate-pulse rounded-lg w-full"></div>
             </div>
             <div className="space-y-2">
               <div className="h-6 bg-muted animate-pulse rounded-lg w-1/2"></div>
@@ -192,6 +195,11 @@ export default function AnimeDetailPage() {
           <div className="md:col-span-2">
             <header className="mb-6">
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{anime.title}</h1>
+               {anime.alternativeNames && anime.alternativeNames.length > 0 && (
+                <p className="mt-2 text-lg text-muted-foreground italic">
+                  También conocido como: {anime.alternativeNames.join(', ')}
+                </p>
+              )}
               <div className="mt-4 flex flex-wrap gap-2">
                 <AnimeFavoriteButton animeId={anime.id} animeTitle={anime.title} size="lg" />
                 <ShareButton
@@ -206,10 +214,26 @@ export default function AnimeDetailPage() {
 
             <Card className="mb-6 shadow-lg rounded-lg">
               <CardHeader>
-                <CardTitle className="text-2xl">Descripción</CardTitle>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Clapperboard className="h-6 w-6 text-accent" />
+                  Sinopsis y Detalles
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground leading-relaxed">{anime.description || "Descripción no disponible."}</p>
+                {anime.genres && anime.genres.length > 0 && (
+                  <div className="mt-4">
+                     <h3 className="text-md font-semibold text-foreground mb-2 flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        Géneros
+                     </h3>
+                     <div className="flex flex-wrap gap-2">
+                       {anime.genres.map(genre => (
+                         <Badge key={genre} variant="secondary" className="text-sm">{genre}</Badge>
+                       ))}
+                     </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
