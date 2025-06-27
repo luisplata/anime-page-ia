@@ -35,19 +35,19 @@ interface ApiEpisodeSource {
 // For /api/episodes -> data array items
 interface ApiEpisodeListItem {
   id: number; // Episode ID
-  anime_id: number;
+  anime_id?: number;
   number: number | string; // Episode number (can be string from API)
-  title: string; // Episode title
+  title?: string; // Episode title
   created_at: string;
-  updated_at: string;
-  published_at: string;
+  updated_at?: string;
+  published_at?: string;
   anime: { // Nested anime object
     id: number; // Anime ID
     slug: string;
     title: string; 
     image: string; // Thumbnail for anime
   };
-  sources: ApiEpisodeSource[];
+  sources?: ApiEpisodeSource[];
 }
 interface ApiEpisodesResponse {
   data: ApiEpisodeListItem[];
@@ -283,8 +283,7 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
           typeof ep.anime.title !== 'string' ||
           typeof ep.anime.image !== 'string' || 
           (typeof ep.number !== 'number' && typeof ep.number !== 'string') || // Allow string initially
-          isNaN(episodeNumberNumeric) || // Check if parsed number is valid
-          !ep.sources || typeof ep.sources !== 'object' // Ensure sources exists
+          isNaN(episodeNumberNumeric) // Check if parsed number is valid
         ) {
           console.warn('Skipping episode due to incomplete/invalid anime data from API:', ep);
           return null;
