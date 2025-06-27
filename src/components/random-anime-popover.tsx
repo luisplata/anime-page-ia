@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { getRandomAnime, type AnimeListing } from '@/services/anime-api';
+import { Badge } from '@/components/ui/badge';
 
 export function RandomAnimePopover({ children }: { children?: ReactNode }) {
   const [randomAnime, setRandomAnime] = useState<AnimeListing | null>(null);
@@ -98,6 +99,17 @@ export function RandomAnimePopover({ children }: { children?: ReactNode }) {
                   {randomAnime.title}
                 </h3>
               </Link>
+              {randomAnime.genres && randomAnime.genres.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 px-4 mt-2">
+                  {randomAnime.genres.map((genre) => (
+                    <Link key={genre} to={`/directorio?g=${encodeURIComponent(genre)}`} onClick={() => setIsOpen(false)}>
+                      <Badge variant="secondary" className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
+                        {genre}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
              <div className="text-center text-muted-foreground space-y-2">

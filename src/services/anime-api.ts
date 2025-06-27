@@ -162,6 +162,7 @@ export interface AnimeListing { // Used for directory, search results, latest ad
   id: string; // This will be the slug
   title: string;
   thumbnailUrl: string;
+  genres?: string[];
 }
 
 export interface NewEpisode { // Used for latest episodes feed ("Capítulos del Día")
@@ -259,6 +260,7 @@ function mapApiAnimeListItemToAnimeListing(anime: ApiAnimeListItem): AnimeListin
     id: anime.slug,
     title: anime.title,
     thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+    genres: (Array.isArray(anime.genres) ? anime.genres : []).map(g => g.genre),
   };
 }
 
@@ -280,7 +282,6 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
           !ep.anime ||
           typeof ep.anime.slug !== 'string' ||
           typeof ep.anime.title !== 'string' ||
-          typeof ep.anime.image !== 'string' || 
           (typeof ep.number !== 'number' && typeof ep.number !== 'string') || // Allow string initially
           isNaN(episodeNumberNumeric) // Check if parsed number is valid
         ) {
