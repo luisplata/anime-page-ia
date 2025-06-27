@@ -1,6 +1,6 @@
 
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Star } from 'lucide-react';
+import { Search, Star, Dices, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
 import HomePage from '@/views/HomePage';
@@ -14,6 +14,10 @@ import DevlogPage from '@/views/devlog/DevlogPage';
 import { Footer } from '@/components/Footer'; 
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { RandomAnimePopover } from '@/components/random-anime-popover';
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from '@/components/ui/separator';
 
 const animeImages = [
   '/assets/animebell_logo_name_prototype.png',
@@ -43,6 +47,7 @@ export default function App() {
   const [homePageKey, setHomePageKey] = useState(Date.now());
   const [randomImage, setRandomImage] = useState('');
   const [currentUrl, setCurrentUrl] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * animeImages.length);
@@ -51,7 +56,6 @@ export default function App() {
 
   useEffect(() => {
     setCurrentUrl(window.location.href);
-    // Scroll to top on route change
     window.scrollTo(0, 0);
   }, [location]);
 
@@ -59,19 +63,22 @@ export default function App() {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const query = formData.get('q') as string;
-    navigate(`/directorio?q=${encodeURIComponent(query)}`);
+    if (query.trim()) {
+      navigate(`/directorio?q=${encodeURIComponent(query)}`);
+    }
+    setIsMobileMenuOpen(false); // Close menu on search
   };
 
-  const handleHomeNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleHomeNavigation = (event?: React.MouseEvent<HTMLAnchorElement>) => {
     if (location.pathname === '/') {
-      event.preventDefault();
-      setHomePageKey(Date.now()); // This will re-mount HomePage and trigger data fetching
+      event?.preventDefault();
+      setHomePageKey(Date.now());
       window.scrollTo(0, 0);
     } else {
-      // For other cases, let the Link component handle navigation
-      // but still scroll to top.
-       window.scrollTo(0, 0);
+      // Allow default link behavior to navigate, just scroll to top
+      window.scrollTo(0, 0);
     }
+    setIsMobileMenuOpen(false);
   };
   
 
@@ -98,44 +105,49 @@ export default function App() {
         <meta property="twitter:description" content="AnimeBell - Tu portal para ver anime online. Disfruta de los últimos episodios y descubre nuevas series." />
         <meta property="twitter:image" content={defaultSocialImage} data-ai-hint="social media banner" />
       </Helmet>
-      <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-md">
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6 shadow-md">
+        {/* Left Side: Logo */}
         <Link
           to="/"
-          className="flex items-center gap-2 text-lg font-semibold md:text-base"
+          className="flex items-center gap-2 text-lg font-semibold"
           onClick={handleHomeNavigation}
         >
           {randomImage && (
             <img src={randomImage} alt="AnimeBell Logo" className="h-8 w-8 object-cover rounded-full mr-2" data-ai-hint="logo avatar" />
           )}
-          <h1 className="text-xl font-bold">{siteName}</h1>
+          <h1 className="text-xl font-bold hidden sm:block">{siteName}</h1>
         </Link>
-        <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 ml-auto">
+
+        {/* Center: Desktop Navigation */}
+        <nav className="hidden flex-row items-center gap-5 text-sm font-medium md:flex lg:gap-6">
           <Link
             to="/"
-            className="text-foreground transition-colors hover:text-accent font-medium"
+            className="text-foreground transition-colors hover:text-accent"
             onClick={handleHomeNavigation}
           >
             Nuevos Capítulos
           </Link>
           <Link
             to="/directorio"
-            className="text-foreground transition-colors hover:text-accent font-medium"
+            className="text-foreground transition-colors hover:text-accent"
           >
             Directorio
           </Link>
           <Link
             to="/favoritos"
-            className="text-foreground transition-colors hover:text-accent font-medium flex items-center gap-1"
+            className="text-foreground transition-colors hover:text-accent flex items-center gap-1"
           >
             <Star className="h-4 w-4" />
             Favoritos
           </Link>
         </nav>
-        <div className="flex items-center gap-2 md:ml-auto md:gap-2 lg:gap-4">
+
+        {/* Right Side: Actions & Mobile Menu */}
+        <div className="flex items-center gap-2">
           <form
             method="GET"
             action="/directorio"
-            className="ml-auto flex-1 sm:flex-initial"
+            className="relative"
             onSubmit={handleSearchSubmit}
           >
             <div className="relative">
@@ -143,13 +155,71 @@ export default function App() {
               <Input
                 type="search"
                 name="q"
-                placeholder="Buscar anime..."
-                className="pl-8 sm:w-[200px] md:w-[200px] lg:w-[250px] rounded-full h-9"
+                placeholder="Buscar..."
+                className="pl-8 w-32 sm:w-[150px] md:w-[200px] lg:w-[250px] rounded-full h-9"
               />
             </div>
             <button type="submit" className="sr-only">Buscar</button>
           </form>
+          
+          <div className="hidden md:block">
+            <RandomAnimePopover />
+          </div>
+
           <ThemeToggle />
+          
+          {/* Mobile Menu Trigger */}
+          <div className="md:hidden">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Abrir menú de navegación</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[280px]">
+                <nav className="grid gap-4 p-4 text-lg font-medium">
+                  <Link
+                    to="/"
+                    className="flex items-center gap-2 font-semibold mb-2 pb-2 border-b"
+                    onClick={handleHomeNavigation}
+                  >
+                    <img src={randomImage || '/assets/animebell_logo.png'} alt="AnimeBell Logo" className="h-8 w-8 object-cover rounded-full" data-ai-hint="logo avatar"/>
+                    <span>{siteName}</span>
+                  </Link>
+                  <Link
+                    to="/"
+                    className="text-muted-foreground hover:text-foreground py-2"
+                    onClick={handleHomeNavigation}
+                  >
+                    Nuevos Capítulos
+                  </Link>
+                  <Link
+                    to="/directorio"
+                    className="text-muted-foreground hover:text-foreground py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Directorio
+                  </Link>
+                  <Link
+                    to="/favoritos"
+                    className="text-muted-foreground hover:text-foreground flex items-center gap-2 py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Star className="h-5 w-5" />
+                    Favoritos
+                  </Link>
+                  <Separator className="my-2" />
+                  <RandomAnimePopover>
+                    <button className="flex w-full items-center gap-2 text-muted-foreground hover:text-foreground py-2 text-left">
+                      <Dices className="h-5 w-5" />
+                      <span>Sugerencia Aleatoria</span>
+                    </button>
+                  </RandomAnimePopover>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">

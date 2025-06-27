@@ -1,4 +1,3 @@
-
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -163,6 +162,7 @@ export interface AnimeListing { // Used for directory, search results, latest ad
   id: string; // This will be the slug
   title: string;
   thumbnailUrl: string;
+  genres?: string[];
 }
 
 export interface NewEpisode { // Used for latest episodes feed ("Capítulos del Día")
@@ -260,6 +260,7 @@ function mapApiAnimeListItemToAnimeListing(anime: ApiAnimeListItem): AnimeListin
     id: anime.slug,
     title: anime.title,
     thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+    genres: (Array.isArray(anime.genres) ? anime.genres : []).map(g => g.genre),
   };
 }
 
@@ -281,7 +282,6 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
           !ep.anime ||
           typeof ep.anime.slug !== 'string' ||
           typeof ep.anime.title !== 'string' ||
-          typeof ep.anime.image !== 'string' || 
           (typeof ep.number !== 'number' && typeof ep.number !== 'string') || // Allow string initially
           isNaN(episodeNumberNumeric) // Check if parsed number is valid
         ) {
@@ -462,5 +462,20 @@ export async function getAnimesByGenre(genre: string, page: number = 1): Promise
   } catch (error) {
     console.error(`Failed to fetch animes for genre "${genre}", page ${page}:`, error);
     return defaultPaginatedResponse;
+  }
+}
+
+export async function getRandomAnime(): Promise<AnimeListing | null> {
+  try {
+    const response = await fetchFromApi<ApiAnimeListItem>('/api/animes/random');
+    if (!response) {
+      console.warn('Received empty response from /api/animes/random');
+      return null;
+    }
+    return mapApiAnimeListItemToAnimeListing(response);
+  } catch (error) {
+    console.error("Failed to fetch random anime:", error);
+    // Returning null to allow the UI to handle the error state
+    return null;
   }
 }
