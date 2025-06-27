@@ -3,6 +3,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readFileSync } from 'fs';
+
+const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -136,7 +139,6 @@ export default defineConfig({
     outDir: 'dist', // Output directory for build files
   },
   define: {
-    // Vite uses import.meta.env for environment variables
-    // 'process.env.NEXT_PUBLIC_ANIME_API_ENDPOINT': JSON.stringify(process.env.VITE_ANIME_API_ENDPOINT),
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
   }
 });

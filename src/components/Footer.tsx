@@ -2,18 +2,23 @@
 import { Mail, ExternalLink, FileText, ShieldCheck, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const appVersion = import.meta.env.VITE_APP_VERSION;
 
   return (
     <footer className="bg-muted/50 text-muted-foreground py-8 border-t">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
           <div className="text-center md:text-left">
-            <p className="text-sm">
-              &copy; {currentYear} AnimeBell. Todos los derechos reservados.
-            </p>
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <p className="text-sm">
+                &copy; {currentYear} AnimeBell. Todos los derechos reservados.
+              </p>
+              {appVersion && <Badge variant="outline">v{appVersion}</Badge>}
+            </div>
             <p className="text-xs mt-1">
               Desarrollado por{' '}
               <a
