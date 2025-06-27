@@ -1,5 +1,5 @@
 
-import { Mail, ExternalLink, FileText, ShieldCheck } from 'lucide-react';
+import { Mail, ExternalLink, FileText, ShieldCheck, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -36,6 +36,11 @@ export function Footer() {
             <Button variant="link" asChild className="text-muted-foreground hover:text-accent p-1 h-auto">
               <Link to="/terminos-y-condiciones" className="inline-flex items-center gap-1.5">
                 <FileText className="h-4 w-4" /> Términos y Condiciones
+              </Link>
+            </Button>
+            <Button variant="link" asChild className="text-muted-foreground hover:text-accent p-1 h-auto">
+              <Link to="/devlog" className="inline-flex items-center gap-1.5">
+                <Code className="h-4 w-4" /> Devlog
               </Link>
             </Button>
           </div>

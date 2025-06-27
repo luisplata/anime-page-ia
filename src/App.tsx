@@ -8,8 +8,9 @@ import DirectoryPage from '@/views/directorio/DirectoryPage';
 import AnimeDetailPage from '@/views/anime/AnimeDetailPage';
 import EpisodePlayerPage from '@/views/ver/EpisodePlayerPage';
 import FavoritesPage from '@/views/favoritos/FavoritesPage';
-import PrivacyPolicyPage from '@/views/legal/PrivacyPolicyPage'; // Added import
-import TermsAndConditionsPage from '@/views/legal/TermsAndConditionsPage'; // Added import
+import PrivacyPolicyPage from '@/views/legal/PrivacyPolicyPage';
+import TermsAndConditionsPage from '@/views/legal/TermsAndConditionsPage';
+import DevlogPage from '@/views/devlog/DevlogPage';
 import { Footer } from '@/components/Footer'; 
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
@@ -160,6 +161,7 @@ export default function App() {
           <Route path="/favoritos" element={<FavoritesPage />} />
           <Route path="/politicas-de-privacidad" element={<PrivacyPolicyPage />} />
           <Route path="/terminos-y-condiciones" element={<TermsAndConditionsPage />} />
+          <Route path="/devlog" element={<DevlogPage />} />
         </Routes>
       </main>
       <Footer />
