@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { getAnimeDetail, type AnimeDetail as AnimeDetailType, type Episode } from '@/services/anime-api';
@@ -228,9 +227,11 @@ export default function AnimeDetailPage() {
                         Géneros
                      </h3>
                      <div className="flex flex-wrap gap-2">
-                       {anime.genres.map(genre => (
-                         <Badge key={genre} variant="secondary" className="text-sm">{genre}</Badge>
-                       ))}
+                        {anime.genres.map((genre) => (
+                         <Link key={genre} to={`/directorio?g=${encodeURIComponent(genre)}`}>
+                           <Badge variant="secondary" className="text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">{genre}</Badge>
+                         </Link>
+                        ))}
                      </div>
                   </div>
                 )}

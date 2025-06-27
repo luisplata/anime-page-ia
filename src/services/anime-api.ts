@@ -1,4 +1,3 @@
-
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -282,7 +281,8 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
           typeof ep.anime.title !== 'string' ||
           typeof ep.anime.image !== 'string' || 
           (typeof ep.number !== 'number' && typeof ep.number !== 'string') || // Allow string initially
-          isNaN(episodeNumberNumeric) // Check if parsed number is valid
+          isNaN(episodeNumberNumeric) || // Check if parsed number is valid
+          !ep.sources || typeof ep.sources !== 'object' // Ensure sources exists
         ) {
           console.warn('Skipping episode due to incomplete/invalid anime data from API:', ep);
           return null;
@@ -432,6 +432,34 @@ export async function searchAnimes(query: string, page: number = 1): Promise<Pag
     };
   } catch (error) {
     console.error(`Failed to search for anime with query "${query}", page ${page}:`, error);
+    return defaultPaginatedResponse;
+  }
+}
+
+export async function getAnimesByGenre(genre: string, page: number = 1): Promise<PaginatedAnimeResponse> {
+  if (!genre.trim()) return defaultPaginatedResponse;
+  try {
+    const response = await fetchFromApi<ApiAnimesDirectoryResponse>(`/api/animes?g=${encodeURIComponent(genre)}&page=${page}&per_page=20`);
+     if (!response || !Array.isArray(response.data)) { 
+        console.warn(`Received empty or invalid data array from /api/animes for genre: ${genre}, page: ${page}. Response:`, response);
+        return defaultPaginatedResponse;
+    }
+    const animes = response.data
+      .map(anime => mapApiAnimeListItemToAnimeListing(anime))
+      .filter((anime): anime is AnimeListing => anime !== null);
+
+    return {
+      animes,
+      currentPage: response.current_page,
+      lastPage: response.last_page,
+      totalAnimes: response.total,
+      perPage: response.per_page,
+      nextPageUrl: response.next_page_url,
+      prevPageUrl: response.prev_page_url,
+      links: response.links,
+    };
+  } catch (error) {
+    console.error(`Failed to fetch animes for genre "${genre}", page ${page}:`, error);
     return defaultPaginatedResponse;
   }
 }
