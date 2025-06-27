@@ -38,6 +38,16 @@ const devlogEntries = [
       '- **Corrección de Errores:** Se han solucionado varios errores menores relacionados con la carga de datos de la API y la visualización de imágenes.',
     ],
   },
+  {
+    date: '4 de Julio, 2024',
+    title: 'Descubrimiento Aleatorio y Mejoras de UI',
+    version: 'v1.2.1',
+    content: [
+      '¡Seguimos añadiendo formas divertidas de descubrir anime!',
+      '- **Botón de Anime Aleatorio:** ¿No sabes qué ver? Hemos añadido un nuevo botón con un icono de dados al lado de la barra de búsqueda. Al hacerle clic, se abrirá un modal con una sugerencia de anime al azar. ¡Puedes pedir más sugerencias o ir directamente a ver el anime!',
+      '- **Versión de la App Visible:** Ahora puedes ver la versión actual de la aplicación en el pie de página. Esto nos ayudará a todos a saber en qué versión estamos.',
+    ],
+  },
 ];
 
 export default function DevlogPage() {
