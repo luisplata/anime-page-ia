@@ -4,16 +4,25 @@ import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Dices, Loader2, ServerCrash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { getRandomAnime, type AnimeListing } from '@/services/anime-api';
 
 export function RandomAnimePopover() {
   const [randomAnime, setRandomAnime] = useState<AnimeListing | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const fetchRandom = useCallback(async () => {
-    // This check prevents multiple fetches if the popover is rapidly opened/closed
     if (isLoading) return;
 
     setIsLoading(true);
@@ -33,69 +42,88 @@ export function RandomAnimePopover() {
       setIsLoading(false);
     }
   }, [isLoading]);
-
-  // Use onOpenChange to fetch data only when the popover opens.
+  
   const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
     if (open) {
-      fetchRandom();
+      // Fetch only if it's opening and there's no data yet.
+      if (!randomAnime && !isLoading) {
+          fetchRandom();
+      }
+    } else {
+      // Reset state when dialog is closed for a fresh start next time
+      setRandomAnime(null);
+      setError(null);
+      setIsLoading(false);
     }
   };
 
   return (
-    <Popover onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Obtener anime aleatorio">
           <Dices className="h-5 w-5" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64" align="end">
-        <div className="grid gap-4">
-          <div className="space-y-1">
-            <h4 className="font-medium leading-none">Sugerencia Aleatoria</h4>
-            <p className="text-sm text-muted-foreground">
-              ¿No sabes qué ver? ¡Prueba suerte!
-            </p>
-          </div>
-          <div className="min-h-[250px] flex items-center justify-center">
-            {isLoading ? (
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            ) : error ? (
-              <div className="text-center text-destructive space-y-2">
-                 <ServerCrash className="h-8 w-8 mx-auto" />
-                 <p className="text-sm font-semibold">{error}</p>
-              </div>
-            ) : randomAnime ? (
-              <div className="w-full space-y-2 text-center">
-                <Link to={`/anime/${randomAnime.id}`} className="block group w-4/5 mx-auto">
-                  <div className="aspect-[2/3] w-full rounded-md overflow-hidden relative shadow-lg">
-                    <img
-                      src={randomAnime.thumbnailUrl}
-                      alt={`Portada de ${randomAnime.title}`}
-                      className="object-cover w-full h-full"
-                      data-ai-hint="anime cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <h5 className="mt-2 text-sm font-semibold truncate group-hover:text-accent transition-colors">
-                    {randomAnime.title}
-                  </h5>
-                </Link>
-                {/* This PopoverTrigger inside a PopoverContent allows closing the popover when clicking the link */}
-                <PopoverTrigger asChild>
-                   <Button asChild size="sm" className="w-full mt-2">
-                    <Link to={`/anime/${randomAnime.id}`}>Ver Anime</Link>
-                  </Button>
-                </PopoverTrigger>
-              </div>
-            ) : (
-                 <div className="text-center text-muted-foreground space-y-2">
-                     <Dices className="h-8 w-8 mx-auto" />
-                     <p className="text-sm">Haz clic para obtener una sugerencia.</p>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Sugerencia Aleatoria</DialogTitle>
+          <DialogDescription>
+            ¿No sabes qué ver? ¡Aquí tienes una sugerencia!
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-h-[350px] flex items-center justify-center py-4">
+          {isLoading ? (
+            <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+          ) : error ? (
+            <div className="text-center text-destructive space-y-2">
+              <ServerCrash className="h-12 w-12 mx-auto" />
+              <p className="text-lg font-semibold">{error}</p>
+            </div>
+          ) : randomAnime ? (
+            <div className="w-full space-y-4 text-center">
+              <Link to={`/anime/${randomAnime.id}`} onClick={() => setIsOpen(false)} className="block group w-4/5 mx-auto">
+                <div className="aspect-[2/3] w-full rounded-md overflow-hidden relative shadow-lg transition-transform group-hover:scale-105">
+                  <img
+                    src={randomAnime.thumbnailUrl}
+                    alt={`Portada de ${randomAnime.title}`}
+                    className="object-cover w-full h-full"
+                    data-ai-hint="anime cover"
+                    loading="lazy"
+                  />
                 </div>
-            )}
-          </div>
+                <h3 className="mt-4 text-xl font-semibold truncate group-hover:text-accent transition-colors">
+                  {randomAnime.title}
+                </h3>
+              </Link>
+            </div>
+          ) : (
+             <div className="text-center text-muted-foreground space-y-2">
+                <Dices className="h-12 w-12 mx-auto" />
+                <p>Haz clic en el botón de abajo para obtener una sugerencia.</p>
+           </div>
+          )}
         </div>
-      </PopoverContent>
-    </Popover>
+        <DialogFooter className="sm:justify-between gap-2 flex-col sm:flex-row">
+            <Button type="button" variant="secondary" onClick={fetchRandom} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Dices className="mr-2 h-4 w-4" />}
+                Otra sugerencia
+            </Button>
+            {randomAnime ? (
+             <DialogClose asChild>
+                <Button asChild>
+                    <Link to={`/anime/${randomAnime.id}`}>Ver Anime</Link>
+                </Button>
+            </DialogClose>
+            ) : (
+             <DialogClose asChild>
+                <Button type="button" variant="outline">
+                    Cerrar
+                </Button>
+            </DialogClose>
+            )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
