@@ -115,7 +115,7 @@ export default function App() {
           {randomImage && (
             <img src={randomImage} alt="AnimeBell Logo" className="h-8 w-8 object-cover rounded-full mr-2" data-ai-hint="logo avatar" />
           )}
-          <h1 className="text-xl font-bold">{siteName}</h1>
+          <h1 className="text-xl font-bold hidden sm:block">{siteName}</h1>
         </Link>
 
         {/* Center: Desktop Navigation */}
@@ -147,7 +147,7 @@ export default function App() {
           <form
             method="GET"
             action="/directorio"
-            className="hidden sm:block"
+            className="relative"
             onSubmit={handleSearchSubmit}
           >
             <div className="relative">
@@ -155,13 +155,17 @@ export default function App() {
               <Input
                 type="search"
                 name="q"
-                placeholder="Buscar anime..."
-                className="pl-8 sm:w-[150px] md:w-[200px] lg:w-[250px] rounded-full h-9"
+                placeholder="Buscar..."
+                className="pl-8 w-32 sm:w-[150px] md:w-[200px] lg:w-[250px] rounded-full h-9"
               />
             </div>
             <button type="submit" className="sr-only">Buscar</button>
           </form>
-          <RandomAnimePopover />
+          
+          <div className="hidden md:block">
+            <RandomAnimePopover />
+          </div>
+
           <ThemeToggle />
           
           {/* Mobile Menu Trigger */}
@@ -206,21 +210,11 @@ export default function App() {
                     Favoritos
                   </Link>
                   <Separator className="my-2" />
-                  <form
-                    className="sm:hidden"
-                    onSubmit={handleSearchSubmit}
-                  >
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        name="q"
-                        placeholder="Buscar anime..."
-                        className="pl-8 rounded-full h-9 w-full"
-                      />
-                    </div>
-                    <button type="submit" className="sr-only">Buscar</button>
-                  </form>
+                   <div className="flex items-center text-muted-foreground hover:text-foreground py-2 cursor-pointer">
+                        <RandomAnimePopover />
+                        {/* This text is for visual context; the popover handles its own trigger. */}
+                        <label htmlFor={undefined} className="ml-2 cursor-pointer">Sugerencia Aleatoria</label>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>
