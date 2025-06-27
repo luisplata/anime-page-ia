@@ -48,6 +48,17 @@ const devlogEntries = [
       '- **Versión de la App Visible:** Ahora puedes ver la versión actual de la aplicación en el pie de página. Esto nos ayudará a todos a saber en qué versión estamos.',
     ],
   },
+  {
+    date: '6 de Julio, 2024',
+    title: 'Mejoras de UI y del Menú Móvil',
+    version: 'v1.2.2',
+    content: [
+      '¡Continuamos puliendo la experiencia de usuario con esta actualización!',
+      '- **Modal de Sugerencia Mejorado:** El popover de anime aleatorio ahora es un modal más grande y centrado, lo que mejora la visibilidad. Además, ahora muestra los géneros del anime sugerido.',
+      '- **Diseño Móvil Optimizado:** Hemos ajustado la cabecera en la vista móvil. La barra de búsqueda ahora es siempre visible, y el botón de sugerencia aleatoria se ha movido dentro del menú deslizable para un acceso más limpio.',
+      '- **Corrección de PWA:** Se ha mejorado el service worker para que la aplicación se actualice automáticamente a la última versión al abrirla, asegurando que siempre tengas las nuevas funcionalidades.',
+    ],
+  },
 ];
 
 export default function DevlogPage() {
