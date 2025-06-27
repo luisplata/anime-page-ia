@@ -1,3 +1,4 @@
+
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -34,19 +35,19 @@ interface ApiEpisodeSource {
 // For /api/episodes -> data array items
 interface ApiEpisodeListItem {
   id: number; // Episode ID
-  anime_id: number;
+  anime_id?: number;
   number: number | string; // Episode number (can be string from API)
-  title: string; // Episode title
+  title?: string; // Episode title
   created_at: string;
-  updated_at: string;
-  published_at: string;
+  updated_at?: string;
+  published_at?: string;
   anime: { // Nested anime object
     id: number; // Anime ID
     slug: string;
     title: string; 
     image: string; // Thumbnail for anime
   };
-  sources: ApiEpisodeSource[];
+  sources?: ApiEpisodeSource[];
 }
 interface ApiEpisodesResponse {
   data: ApiEpisodeListItem[];
@@ -54,6 +55,22 @@ interface ApiEpisodesResponse {
   last_page?: number;
 }
 
+// For /api/anime/{slug} - also used within other responses
+interface ApiAlterName {
+    id: number;
+    anime_id: string; // API seems to send string here
+    name: string;
+    created_at: string;
+    updated_at: string;
+}
+
+interface ApiGenre {
+    id: number;
+    anime_id: string; // API seems to send string here
+    genre: string;
+    created_at: string;
+    updated_at: string;
+}
 
 // For /api/animes -> data array items & /api/animes/search -> data array items
 interface ApiAnimeListItem {
@@ -64,6 +81,8 @@ interface ApiAnimeListItem {
   description?: string | null;
   created_at: string;
   updated_at: string;
+  alter_names?: ApiAlterName[];
+  genres?: ApiGenre[];
 }
 
 // Link object from API pagination
@@ -93,7 +112,6 @@ type ApiAnimesDirectoryResponse = BasePaginatedResponse<ApiAnimeListItem>;
 type ApiAnimesSearchResponse = BasePaginatedResponse<ApiAnimeListItem>;
 
 
-// For /api/anime/{slug}
 interface ApiAnimeEpisodeDetail { // Episode structure within AnimeDetail
   id: number; // Episode ID
   anime_id: number;
@@ -113,6 +131,8 @@ interface ApiAnimeDetailResponse {
   created_at: string;
   updated_at: string;
   episodes: ApiAnimeEpisodeDetail[];
+  alter_names: ApiAlterName[];
+  genres: ApiGenre[];
 }
 
 
@@ -135,6 +155,8 @@ export interface AnimeDetail {
   description: string;
   coverUrl: string;
   episodes: Episode[];
+  genres: string[];
+  alternativeNames: string[];
 }
 
 export interface AnimeListing { // Used for directory, search results, latest added
@@ -362,15 +384,15 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
         ? `Información sobre ${title}.` 
         : (anime.description || "No hay descripción disponible."),
       coverUrl: (coverImg && coverImg.trim() !== '' && !coverImg.includes('https://example.com/missing.jpg')) ? coverImg : defaultCover,
+      genres: (Array.isArray(anime.genres) ? anime.genres : []).map(g => g.genre),
+      alternativeNames: (Array.isArray(anime.alter_names) ? anime.alter_names : []).map(an => an.name),
       episodes: (Array.isArray(anime.episodes) ? anime.episodes : []).map((ep): Episode => {
         const episodeNumberNumeric = typeof ep.number === 'string' ? parseInt(ep.number, 10) : ep.number;
         if (isNaN(episodeNumberNumeric)) {
             console.warn(`Invalid episode number for anime ${animeSlug}, episode id ${ep.id}:`, ep.number);
-            // Potentially skip or assign a default, here we skip by returning null and filtering later
-            // However, for now, we'll assume the outer check handles this if map returns invalid data
         }
         return {
-            episodeNumber: isNaN(episodeNumberNumeric) ? -1 : episodeNumberNumeric, // Use -1 or handle error
+            episodeNumber: isNaN(episodeNumberNumeric) ? -1 : episodeNumberNumeric,
             streamingSources: (Array.isArray(ep.sources) ? ep.sources : []).map(source => ({
             name: source.name || 'Fuente Desconocida',
             url: source.url || 'https://example.com/placeholder-stream',
@@ -378,7 +400,7 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
             })).filter(s => s.url && s.url !== 'https://example.com/placeholder-stream'),
             title: ep.title || `Episodio ${episodeNumberNumeric}`,
         }
-      }).filter(ep => ep.episodeNumber !== -1) // Filter out episodes with invalid numbers
+      }).filter(ep => ep.episodeNumber !== -1)
       .sort((a, b) => a.episodeNumber - b.episodeNumber),
     };
   } catch (error) {
@@ -415,3 +437,30 @@ export async function searchAnimes(query: string, page: number = 1): Promise<Pag
   }
 }
 
+export async function getAnimesByGenre(genre: string, page: number = 1): Promise<PaginatedAnimeResponse> {
+  if (!genre.trim()) return defaultPaginatedResponse;
+  try {
+    const response = await fetchFromApi<ApiAnimesDirectoryResponse>(`/api/animes/genre?q=${encodeURIComponent(genre)}&page=${page}&per_page=20`);
+     if (!response || !Array.isArray(response.data)) { 
+        console.warn(`Received empty or invalid data array from /api/animes/genre for genre: ${genre}, page: ${page}. Response:`, response);
+        return defaultPaginatedResponse;
+    }
+    const animes = response.data
+      .map(anime => mapApiAnimeListItemToAnimeListing(anime))
+      .filter((anime): anime is AnimeListing => anime !== null);
+
+    return {
+      animes,
+      currentPage: response.current_page,
+      lastPage: response.last_page,
+      totalAnimes: response.total,
+      perPage: response.per_page,
+      nextPageUrl: response.next_page_url,
+      prevPageUrl: response.prev_page_url,
+      links: response.links,
+    };
+  } catch (error) {
+    console.error(`Failed to fetch animes for genre "${genre}", page ${page}:`, error);
+    return defaultPaginatedResponse;
+  }
+}

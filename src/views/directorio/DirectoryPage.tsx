@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getAnimeDirectory,
+  getAnimesByGenre,
   searchAnimes
 } from '@/services/anime-api';
 import { AnimeCard } from '@/components/anime-card';
@@ -19,6 +19,7 @@ export default function DirectoryPage() {
 
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const searchQueryFromUrl = queryParams.get('q') || "";
+  const genreQueryFromUrl = queryParams.get('g') || "";
   const pageFromUrl = parseInt(queryParams.get('page') || '1', 10);
 
   const [animeData, setAnimeData] = useState<PaginatedAnimeResponse | null>(null);
@@ -36,8 +37,12 @@ export default function DirectoryPage() {
   }, [location]);
   
   useEffect(() => {
-    setSearchInput(searchQueryFromUrl);
-  }, [searchQueryFromUrl]);
+    if (genreQueryFromUrl) {
+      setSearchInput('');
+    } else {
+      setSearchInput(searchQueryFromUrl);
+    }
+  }, [searchQueryFromUrl, genreQueryFromUrl]);
 
 
   useEffect(() => {
@@ -47,7 +52,11 @@ export default function DirectoryPage() {
       setAnimeData(null);
       try {
         let response: PaginatedAnimeResponse;
-        if (searchQueryFromUrl.trim()) {
+        if (genreQueryFromUrl.trim()) {
+          response = await getAnimesByGenre(genreQueryFromUrl.trim(), pageFromUrl);
+          setPageTitle(`Animes de Género: "${genreQueryFromUrl}" (Pág. ${pageFromUrl}) - AnimeBell`);
+          setPageDescription(`Mostrando animes del género "${genreQueryFromUrl}", página ${pageFromUrl}.`);
+        } else if (searchQueryFromUrl.trim()) {
           response = await searchAnimes(searchQueryFromUrl.trim(), pageFromUrl);
           setPageTitle(`Resultados para "${searchQueryFromUrl}" (Pág. ${pageFromUrl}) - AnimeBell`);
           setPageDescription(`Mostrando resultados de búsqueda para "${searchQueryFromUrl}", página ${pageFromUrl}.`);
@@ -68,7 +77,7 @@ export default function DirectoryPage() {
       }
     };
     fetchAnimes();
-  }, [searchQueryFromUrl, pageFromUrl]);
+  }, [searchQueryFromUrl, genreQueryFromUrl, pageFromUrl]);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -118,10 +127,10 @@ export default function DirectoryPage() {
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            {searchQueryFromUrl.trim() ? `Buscando: "${searchQueryFromUrl}"` : "Directorio de Anime"}
+            {genreQueryFromUrl.trim() ? `Género: "${genreQueryFromUrl}"` : searchQueryFromUrl.trim() ? `Buscando: "${searchQueryFromUrl}"` : "Directorio de Anime"}
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            {searchQueryFromUrl.trim() ? `Explora los resultados para tu búsqueda.` : "Explora nuestra vasta colección de series de anime."}
+            {genreQueryFromUrl.trim() ? `Explora los animes del género ${genreQueryFromUrl}.` : searchQueryFromUrl.trim() ? `Explora los resultados para tu búsqueda.` : "Explora nuestra vasta colección de series de anime."}
             {animeData && animeData.totalAnimes > 0 && ` (${animeData.totalAnimes} resultados)`}
           </p>
         </header>
@@ -243,12 +252,12 @@ export default function DirectoryPage() {
           <div className="flex flex-col items-center justify-center py-12 text-center min-h-[300px]">
             <ListX className="h-16 w-16 text-muted-foreground mb-4" />
             <p className="text-xl font-medium text-muted-foreground">
-              {searchQueryFromUrl ? `No se encontraron resultados para "${searchQueryFromUrl}"` : "El directorio de anime está vacío."}
+              {genreQueryFromUrl ? `No se encontraron animes para el género "${genreQueryFromUrl}"` : searchQueryFromUrl ? `No se encontraron resultados para "${searchQueryFromUrl}"` : "El directorio de anime está vacío."}
             </p>
             <p className="mt-2 text-muted-foreground">
-              {searchQueryFromUrl ? "Intenta con otra búsqueda o explora el directorio completo." : "Parece que no hemos encontrado ningún anime. Inténtalo de nuevo más tarde."}
+              {genreQueryFromUrl ? "Intenta con otro género o explora el directorio completo." : searchQueryFromUrl ? "Intenta con otra búsqueda o explora el directorio completo." : "Parece que no hemos encontrado ningún anime. Inténtalo de nuevo más tarde."}
             </p>
-            {searchQueryFromUrl && (
+            {(searchQueryFromUrl || genreQueryFromUrl) && (
                 <Button variant="link" onClick={() => navigate("/directorio?page=1")} className="mt-2">
                     Ver todos los animes
                 </Button>
