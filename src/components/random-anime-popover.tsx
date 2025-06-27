@@ -85,7 +85,7 @@ export function RandomAnimePopover({ children }: { children?: ReactNode }) {
             </div>
           ) : randomAnime ? (
             <div className="w-full space-y-4 text-center">
-              <Link to={`/anime/${randomAnime.id}`} onClick={() => setIsOpen(false)} className="block group w-4/5 mx-auto">
+              <Link to={`/anime/${randomAnime.id}`} onClick={() => setIsOpen(false)} className="block group w-full max-w-[240px] mx-auto">
                 <div className="aspect-[2/3] w-full rounded-md overflow-hidden relative shadow-lg transition-transform group-hover:scale-105">
                   <img
                     src={randomAnime.thumbnailUrl}
