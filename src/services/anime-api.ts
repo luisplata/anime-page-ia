@@ -1,3 +1,4 @@
+
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -54,6 +55,22 @@ interface ApiEpisodesResponse {
   last_page?: number;
 }
 
+// For /api/anime/{slug} - also used within other responses
+interface ApiAlterName {
+    id: number;
+    anime_id: string; // API seems to send string here
+    name: string;
+    created_at: string;
+    updated_at: string;
+}
+
+interface ApiGenre {
+    id: number;
+    anime_id: string; // API seems to send string here
+    genre: string;
+    created_at: string;
+    updated_at: string;
+}
 
 // For /api/animes -> data array items & /api/animes/search -> data array items
 interface ApiAnimeListItem {
@@ -64,6 +81,8 @@ interface ApiAnimeListItem {
   description?: string | null;
   created_at: string;
   updated_at: string;
+  alter_names?: ApiAlterName[];
+  genres?: ApiGenre[];
 }
 
 // Link object from API pagination
@@ -92,23 +111,6 @@ interface BasePaginatedResponse<T> {
 type ApiAnimesDirectoryResponse = BasePaginatedResponse<ApiAnimeListItem>;
 type ApiAnimesSearchResponse = BasePaginatedResponse<ApiAnimeListItem>;
 
-
-// For /api/anime/{slug}
-interface ApiAlterName {
-    id: number;
-    anime_id: string; // API seems to send string here
-    name: string;
-    created_at: string;
-    updated_at: string;
-}
-
-interface ApiGenre {
-    id: number;
-    anime_id: string; // API seems to send string here
-    genre: string;
-    created_at: string;
-    updated_at: string;
-}
 
 interface ApiAnimeEpisodeDetail { // Episode structure within AnimeDetail
   id: number; // Episode ID
@@ -439,9 +441,9 @@ export async function searchAnimes(query: string, page: number = 1): Promise<Pag
 export async function getAnimesByGenre(genre: string, page: number = 1): Promise<PaginatedAnimeResponse> {
   if (!genre.trim()) return defaultPaginatedResponse;
   try {
-    const response = await fetchFromApi<ApiAnimesDirectoryResponse>(`/api/animes?g=${encodeURIComponent(genre)}&page=${page}&per_page=20`);
+    const response = await fetchFromApi<ApiAnimesDirectoryResponse>(`/api/animes/genre?q=${encodeURIComponent(genre)}&page=${page}&per_page=20`);
      if (!response || !Array.isArray(response.data)) { 
-        console.warn(`Received empty or invalid data array from /api/animes for genre: ${genre}, page: ${page}. Response:`, response);
+        console.warn(`Received empty or invalid data array from /api/animes/genre for genre: ${genre}, page: ${page}. Response:`, response);
         return defaultPaginatedResponse;
     }
     const animes = response.data
