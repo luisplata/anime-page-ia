@@ -1,4 +1,3 @@
-
 // src/services/anime-api.ts
 
 // Helper to get cookie value by name (client-side)
@@ -462,5 +461,20 @@ export async function getAnimesByGenre(genre: string, page: number = 1): Promise
   } catch (error) {
     console.error(`Failed to fetch animes for genre "${genre}", page ${page}:`, error);
     return defaultPaginatedResponse;
+  }
+}
+
+export async function getRandomAnime(): Promise<AnimeListing | null> {
+  try {
+    const response = await fetchFromApi<ApiAnimeListItem>('/api/animes/random');
+    if (!response) {
+      console.warn('Received empty response from /api/animes/random');
+      return null;
+    }
+    return mapApiAnimeListItemToAnimeListing(response);
+  } catch (error) {
+    console.error("Failed to fetch random anime:", error);
+    // Returning null to allow the UI to handle the error state
+    return null;
   }
 }

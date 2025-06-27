@@ -1,6 +1,6 @@
 
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Star } from 'lucide-react';
+import { Search, Star, Dices } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
 import HomePage from '@/views/HomePage';
@@ -14,6 +14,7 @@ import DevlogPage from '@/views/devlog/DevlogPage';
 import { Footer } from '@/components/Footer'; 
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { RandomAnimePopover } from '@/components/random-anime-popover';
 
 const animeImages = [
   '/assets/animebell_logo_name_prototype.png',
@@ -132,10 +133,11 @@ export default function App() {
           </Link>
         </nav>
         <div className="flex items-center gap-2 md:ml-auto md:gap-2 lg:gap-4">
+          <RandomAnimePopover />
           <form
             method="GET"
             action="/directorio"
-            className="ml-auto flex-1 sm:flex-initial"
+            className="flex-1 sm:flex-initial"
             onSubmit={handleSearchSubmit}
           >
             <div className="relative">
