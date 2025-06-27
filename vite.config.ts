@@ -13,8 +13,6 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Updated includeAssets to be more specific.
-      // Assets in /public/assets and /public/icons will be picked up by workbox.globPatterns.
       includeAssets: ['favicon.ico'], 
       manifest: {
         name: 'AnimeBell',
@@ -70,8 +68,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // This will scan the 'dist' directory (output of the build)
-        // and include matched files with revisions in the precache manifest.
+        skipWaiting: true,
+        clientsClaim: true,
+        navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2,ttf,eot,otf}'],
         runtimeCaching: [
           {
@@ -120,8 +119,8 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true, // Enable PWA features in development for testing
-        type: 'module', // Recommended for modern browsers
+        enabled: true,
+        type: 'module',
       }
     }),
   ],
@@ -131,12 +130,12 @@ export default defineConfig({
     },
   },
   server: {
-    port: 9002, // Matches your previous Next.js dev port
-    host: true, // Allow access from network
-    strictPort: true, // Fail if port is already in use
+    port: 9002,
+    host: true,
+    strictPort: true,
   },
   build: {
-    outDir: 'dist', // Output directory for build files
+    outDir: 'dist',
   },
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
