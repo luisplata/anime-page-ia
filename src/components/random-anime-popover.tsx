@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Dices, Loader2, ServerCrash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { getRandomAnime, type AnimeListing } from '@/services/anime-api';
 
-export function RandomAnimePopover() {
+export function RandomAnimePopover({ children }: { children?: ReactNode }) {
   const [randomAnime, setRandomAnime] = useState<AnimeListing | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,9 +61,11 @@ export function RandomAnimePopover() {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Obtener anime aleatorio">
-          <Dices className="h-5 w-5" />
-        </Button>
+        {children || (
+          <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Obtener anime aleatorio">
+            <Dices className="h-5 w-5" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

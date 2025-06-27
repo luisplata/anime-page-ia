@@ -210,11 +210,12 @@ export default function App() {
                     Favoritos
                   </Link>
                   <Separator className="my-2" />
-                   <div className="flex items-center text-muted-foreground hover:text-foreground py-2 cursor-pointer">
-                        <RandomAnimePopover />
-                        {/* This text is for visual context; the popover handles its own trigger. */}
-                        <label htmlFor={undefined} className="ml-2 cursor-pointer">Sugerencia Aleatoria</label>
-                  </div>
+                  <RandomAnimePopover>
+                    <button className="flex w-full items-center gap-2 text-muted-foreground hover:text-foreground py-2 text-left">
+                      <Dices className="h-5 w-5" />
+                      <span>Sugerencia Aleatoria</span>
+                    </button>
+                  </RandomAnimePopover>
                 </nav>
               </SheetContent>
             </Sheet>
