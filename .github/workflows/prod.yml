@@ -126,3 +126,38 @@ jobs:
             rm -f "$APP_DIR/build.zip"
 
             echo "Deployment finished!"
+
+  generate-apk-files:
+    runs-on: ubuntu-latest
+    needs: export-and-deploy # Depends on your build job
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      # ... (Steps to set up JDK, Android SDK, Bubblewrap)
+
+      - name: ⬇️ Download PWA build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: react-build # Name of your build artifact
+          path: ./build
+
+      - name: ⚙️ Generate TWA project
+        run: |
+          # Commands to run Bubblewrap to generate Android project
+          # This will depend on your Bubblewrap configuration
+          bubblewrap build \
+            --output-dir ./android-project \
+            --manifest-url https://your-website.com/manifest.json \
+            --pwa-url https://your-website.com/ \
+            # ... other Bubblewrap options
+
+      - name: 📦 Build unsigned APK (requires Android SDK)
+        run: |
+          # Commands to build unsigned APK using Android SDK tools
+
+      - name: 📤 Upload unsigned APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-apk
+          path: ./your-app-unsigned.apk
