@@ -18,7 +18,7 @@ const devlogEntries = [
   },
   {
     date: '30 de Junio, 2024',
-    title: 'Favoritos, Marcadores y Mejoras de SEO',
+    title: '¡Llegan los Favoritos y Marcadores!',
     version: 'v1.1.0',
     content: [
       '¡Gracias por el increíble apoyo inicial! Basado en los primeros comentarios, hemos añadido varias funcionalidades clave:',
@@ -30,33 +30,27 @@ const devlogEntries = [
   },
   {
     date: '2 de Julio, 2024',
-    title: 'Filtro por Géneros y Correcciones',
+    title: 'Filtros, Devlog y Descubrimiento Aleatorio',
     version: 'v1.2.0',
     content: [
-      'Seguimos mejorando la experiencia de descubrimiento:',
+      '¡Seguimos mejorando la experiencia de descubrimiento y la transparencia del proyecto!',
       '- **Filtro por Géneros:** ¡Ahora puedes explorar el directorio filtrando por género! Simplemente haz clic en una etiqueta de género en la página de un anime para ver más series similares.',
-      '- **Corrección de Errores:** Se han solucionado varios errores menores relacionados con la carga de datos de la API y la visualización de imágenes.',
-    ],
-  },
-  {
-    date: '4 de Julio, 2024',
-    title: 'Descubrimiento Aleatorio y Mejoras de UI',
-    version: 'v1.2.1',
-    content: [
-      '¡Seguimos añadiendo formas divertidas de descubrir anime!',
-      '- **Botón de Anime Aleatorio:** ¿No sabes qué ver? Hemos añadido un nuevo botón con un icono de dados al lado de la barra de búsqueda. Al hacerle clic, se abrirá un modal con una sugerencia de anime al azar. ¡Puedes pedir más sugerencias o ir directamente a ver el anime!',
+      '- **Botón de Anime Aleatorio (v1):** Se ha añadido un botón de sugerencia de anime al azar. La primera versión abría un pequeño popover al lado de la barra de búsqueda.',
+      '- **Página de Devlog:** Se ha creado esta misma página para que podáis seguir el desarrollo y las últimas actualizaciones de la aplicación.',
       '- **Versión de la App Visible:** Ahora puedes ver la versión actual de la aplicación en el pie de página. Esto nos ayudará a todos a saber en qué versión estamos.',
+      '- **Corrección de API:** Se solucionó un error que impedía que los "Capítulos del Día" se mostraran correctamente en la página de inicio.',
     ],
   },
   {
     date: '6 de Julio, 2024',
-    title: 'Mejoras de UI y del Menú Móvil',
+    title: 'Gran Actualización de UI: Menú Móvil y Mejoras',
     version: 'v1.2.2',
     content: [
-      '¡Continuamos puliendo la experiencia de usuario con esta actualización!',
-      '- **Modal de Sugerencia Mejorado:** El popover de anime aleatorio ahora es un modal más grande y centrado, lo que mejora la visibilidad. Además, ahora muestra los géneros del anime sugerido.',
-      '- **Diseño Móvil Optimizado:** Hemos ajustado la cabecera en la vista móvil. La barra de búsqueda ahora es siempre visible, y el botón de sugerencia aleatoria se ha movido dentro del menú deslizable para un acceso más limpio.',
-      '- **Corrección de PWA:** Se ha mejorado el service worker para que la aplicación se actualice automáticamente a la última versión al abrirla, asegurando que siempre tengas las nuevas funcionalidades.',
+      'Esta actualización se centra en pulir la experiencia de usuario, especialmente en dispositivos móviles.',
+      '- **Menú Móvil Rediseñado:** Para mejorar la navegación en móviles, se ha añadido un menú lateral deslizable ("hamburguesa") que contiene los enlaces principales y la opción de sugerencia aleatoria.',
+      '- **Cabecera Optimizada:** La barra de búsqueda ahora es siempre visible en la cabecera móvil para un acceso rápido y directo.',
+      '- **Modal de Sugerencia Mejorado:** El popover de anime aleatorio se ha transformado en un modal más grande y centrado. Ahora también muestra los géneros del anime sugerido y se ha solucionado un problema que causaba que la imagen se desbordara del contenedor.',
+      '- **Actualización Automática de PWA:** Se ha mejorado la configuración del Service Worker para que la aplicación se actualice automáticamente a la última versión al abrirla, asegurando que todos los usuarios disfruten de las últimas funcionalidades sin demoras.',
     ],
   },
 ];
@@ -108,9 +102,18 @@ export default function DevlogPage() {
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4 text-muted-foreground leading-relaxed pl-2">
                      <p className="text-xs font-mono text-foreground">{entry.date}</p>
-                     {entry.content.map((paragraph, index) => (
-                        <p key={index}>{paragraph}</p>
-                     ))}
+                     {entry.content.map((paragraph, index) => {
+                      if (paragraph.startsWith('- ')) {
+                        const boldPart = paragraph.substring(2, paragraph.indexOf(':', 2) + 1);
+                        const restOfPart = paragraph.substring(paragraph.indexOf(':', 2) + 1);
+                        return (
+                          <p key={index}>
+                            - <strong>{boldPart}</strong>{restOfPart}
+                          </p>
+                        )
+                      }
+                      return <p key={index}>{paragraph}</p>
+                    })}
                   </AccordionContent>
                 </AccordionItem>
               ))}
