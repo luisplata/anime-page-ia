@@ -8,18 +8,18 @@ import { Badge } from '@/components/ui/badge';
 
 const devlogEntries = [
   {
-    date: '28 de Junio, 2024',
-    title: '¡Lanzamiento de AnimeBell!',
+    date: '20 de Junio, 2025',
     version: 'v1.0.0',
+    title: '¡Lanzamiento de AnimeBell!',
     content: [
       '¡Hola a todos! Hoy marca el lanzamiento oficial de AnimeBell. Ha sido un viaje emocionante desarrollar esta plataforma desde cero. El objetivo es simple: proporcionar un lugar rápido, limpio y fácil de usar para ver tus animes favoritos.',
       'En esta primera versión, hemos incluido las funcionalidades básicas: un directorio completo de animes, un reproductor de video funcional con selección de fuentes, y una página de inicio con los últimos episodios.',
     ],
   },
   {
-    date: '30 de Junio, 2024',
-    title: '¡Llegan los Favoritos y Marcadores!',
+    date: '22 de Junio, 2025',
     version: 'v1.1.0',
+    title: '¡Llegan los Favoritos y Marcadores!',
     content: [
       '¡Gracias por el increíble apoyo inicial! Basado en los primeros comentarios, hemos añadido varias funcionalidades clave:',
       '- **Sistema de Favoritos:** Ahora puedes guardar tus animes preferidos para acceder a ellos fácilmente. ¡Toda la información se guarda en tu dispositivo!',
@@ -29,9 +29,9 @@ const devlogEntries = [
     ],
   },
   {
-    date: '2 de Julio, 2024',
-    title: 'Filtros, Devlog y Descubrimiento Aleatorio',
+    date: '24 de Junio, 2025',
     version: 'v1.2.0',
+    title: 'Filtros, Devlog y Descubrimiento Aleatorio',
     content: [
       '¡Seguimos mejorando la experiencia de descubrimiento y la transparencia del proyecto!',
       '- **Filtro por Géneros:** ¡Ahora puedes explorar el directorio filtrando por género! Simplemente haz clic en una etiqueta de género en la página de un anime para ver más series similares.',
@@ -42,14 +42,24 @@ const devlogEntries = [
     ],
   },
   {
-    date: '6 de Julio, 2024',
-    title: 'Gran Actualización de UI: Menú Móvil y Mejoras',
-    version: 'v1.2.2',
+    date: '26 de Junio, 2025',
+    version: 'v1.2.1',
+    title: 'Mejoras en el Modal de Sugerencias',
     content: [
-      'Esta actualización se centra en pulir la experiencia de usuario, especialmente en dispositivos móviles.',
-      '- **Menú Móvil Rediseñado:** Para mejorar la navegación en móviles, se ha añadido un menú lateral deslizable ("hamburguesa") que contiene los enlaces principales y la opción de sugerencia aleatoria.',
-      '- **Cabecera Optimizada:** La barra de búsqueda ahora es siempre visible en la cabecera móvil para un acceso rápido y directo.',
-      '- **Modal de Sugerencia Mejorado:** El popover de anime aleatorio se ha transformado en un modal más grande y centrado. Ahora también muestra los géneros del anime sugerido y se ha solucionado un problema que causaba que la imagen se desbordara del contenedor.',
+      'Hemos rediseñado completamente la función de "anime aleatorio" para que sea más útil y atractiva.',
+      '- **Modal Centrado:** La sugerencia aleatoria ahora aparece en un modal grande y centrado en lugar de un pequeño popover, mejorando la visibilidad.',
+      '- **Información de Géneros:** El modal ahora muestra los géneros del anime sugerido, con enlaces para explorar más series del mismo tipo.',
+      '- **Corrección Visual:** Se ha solucionado un problema que causaba que las carátulas de los animes se salieran de los bordes del modal.',
+    ],
+  },
+  {
+    date: '27 de Junio, 2025',
+    version: 'v1.2.2',
+    title: 'Gran Actualización de UI Móvil y PWA',
+    content: [
+      'Esta actualización se centra en pulir la experiencia de usuario, especialmente en dispositivos móviles, y mejorar la PWA.',
+      '- **Menú Móvil Rediseñado:** Para mejorar la navegación en móviles, se ha añadido un menú lateral deslizable ("hamburguesa") que contiene los enlaces principales.',
+      '- **Cabecera Optimizada:** La barra de búsqueda ahora es siempre visible en la cabecera móvil para un acceso rápido, y el botón de "Sugerencia Aleatoria" se ha movido dentro del nuevo menú.',
       '- **Actualización Automática de PWA:** Se ha mejorado la configuración del Service Worker para que la aplicación se actualice automáticamente a la última versión al abrirla, asegurando que todos los usuarios disfruten de las últimas funcionalidades sin demoras.',
     ],
   },
