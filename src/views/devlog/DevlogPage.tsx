@@ -8,18 +8,18 @@ import { Badge } from '@/components/ui/badge';
 
 const devlogEntries = [
   {
-    date: '28 de Junio, 2024',
-    title: '¡Lanzamiento de AnimeBell!',
+    date: '20 de Junio, 2025',
     version: 'v1.0.0',
+    title: '¡Lanzamiento de AnimeBell!',
     content: [
       '¡Hola a todos! Hoy marca el lanzamiento oficial de AnimeBell. Ha sido un viaje emocionante desarrollar esta plataforma desde cero. El objetivo es simple: proporcionar un lugar rápido, limpio y fácil de usar para ver tus animes favoritos.',
       'En esta primera versión, hemos incluido las funcionalidades básicas: un directorio completo de animes, un reproductor de video funcional con selección de fuentes, y una página de inicio con los últimos episodios.',
     ],
   },
   {
-    date: '30 de Junio, 2024',
-    title: 'Favoritos, Marcadores y Mejoras de SEO',
+    date: '22 de Junio, 2025',
     version: 'v1.1.0',
+    title: '¡Llegan los Favoritos y Marcadores!',
     content: [
       '¡Gracias por el increíble apoyo inicial! Basado en los primeros comentarios, hemos añadido varias funcionalidades clave:',
       '- **Sistema de Favoritos:** Ahora puedes guardar tus animes preferidos para acceder a ellos fácilmente. ¡Toda la información se guarda en tu dispositivo!',
@@ -29,34 +29,38 @@ const devlogEntries = [
     ],
   },
   {
-    date: '2 de Julio, 2024',
-    title: 'Filtro por Géneros y Correcciones',
+    date: '24 de Junio, 2025',
     version: 'v1.2.0',
+    title: 'Filtros, Devlog y Descubrimiento Aleatorio',
     content: [
-      'Seguimos mejorando la experiencia de descubrimiento:',
+      '¡Seguimos mejorando la experiencia de descubrimiento y la transparencia del proyecto!',
       '- **Filtro por Géneros:** ¡Ahora puedes explorar el directorio filtrando por género! Simplemente haz clic en una etiqueta de género en la página de un anime para ver más series similares.',
-      '- **Corrección de Errores:** Se han solucionado varios errores menores relacionados con la carga de datos de la API y la visualización de imágenes.',
-    ],
-  },
-  {
-    date: '4 de Julio, 2024',
-    title: 'Descubrimiento Aleatorio y Mejoras de UI',
-    version: 'v1.2.1',
-    content: [
-      '¡Seguimos añadiendo formas divertidas de descubrir anime!',
-      '- **Botón de Anime Aleatorio:** ¿No sabes qué ver? Hemos añadido un nuevo botón con un icono de dados al lado de la barra de búsqueda. Al hacerle clic, se abrirá un modal con una sugerencia de anime al azar. ¡Puedes pedir más sugerencias o ir directamente a ver el anime!',
+      '- **Botón de Anime Aleatorio (v1):** Se ha añadido un botón de sugerencia de anime al azar. La primera versión abría un pequeño popover al lado de la barra de búsqueda.',
+      '- **Página de Devlog:** Se ha creado esta misma página para que podáis seguir el desarrollo y las últimas actualizaciones de la aplicación.',
       '- **Versión de la App Visible:** Ahora puedes ver la versión actual de la aplicación en el pie de página. Esto nos ayudará a todos a saber en qué versión estamos.',
+      '- **Corrección de API:** Se solucionó un error que impedía que los "Capítulos del Día" se mostraran correctamente en la página de inicio.',
     ],
   },
   {
-    date: '6 de Julio, 2024',
-    title: 'Mejoras de UI y del Menú Móvil',
-    version: 'v1.2.2',
+    date: '26 de Junio, 2025',
+    version: 'v1.2.1',
+    title: 'Mejoras en el Modal de Sugerencias',
     content: [
-      '¡Continuamos puliendo la experiencia de usuario con esta actualización!',
-      '- **Modal de Sugerencia Mejorado:** El popover de anime aleatorio ahora es un modal más grande y centrado, lo que mejora la visibilidad. Además, ahora muestra los géneros del anime sugerido.',
-      '- **Diseño Móvil Optimizado:** Hemos ajustado la cabecera en la vista móvil. La barra de búsqueda ahora es siempre visible, y el botón de sugerencia aleatoria se ha movido dentro del menú deslizable para un acceso más limpio.',
-      '- **Corrección de PWA:** Se ha mejorado el service worker para que la aplicación se actualice automáticamente a la última versión al abrirla, asegurando que siempre tengas las nuevas funcionalidades.',
+      'Hemos rediseñado completamente la función de "anime aleatorio" para que sea más útil y atractiva.',
+      '- **Modal Centrado:** La sugerencia aleatoria ahora aparece en un modal grande y centrado en lugar de un pequeño popover, mejorando la visibilidad.',
+      '- **Información de Géneros:** El modal ahora muestra los géneros del anime sugerido, con enlaces para explorar más series del mismo tipo.',
+      '- **Corrección Visual:** Se ha solucionado un problema que causaba que las carátulas de los animes se salieran de los bordes del modal.',
+    ],
+  },
+  {
+    date: '27 de Junio, 2025',
+    version: 'v1.2.2',
+    title: 'Gran Actualización de UI Móvil y PWA',
+    content: [
+      'Esta actualización se centra en pulir la experiencia de usuario, especialmente en dispositivos móviles, y mejorar la PWA.',
+      '- **Menú Móvil Rediseñado:** Para mejorar la navegación en móviles, se ha añadido un menú lateral deslizable ("hamburguesa") que contiene los enlaces principales.',
+      '- **Cabecera Optimizada:** La barra de búsqueda ahora es siempre visible en la cabecera móvil para un acceso rápido, y el botón de "Sugerencia Aleatoria" se ha movido dentro del nuevo menú.',
+      '- **Actualización Automática de PWA:** Se ha mejorado la configuración del Service Worker para que la aplicación se actualice automáticamente a la última versión al abrirla, asegurando que todos los usuarios disfruten de las últimas funcionalidades sin demoras.',
     ],
   },
 ];
@@ -108,9 +112,18 @@ export default function DevlogPage() {
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4 text-muted-foreground leading-relaxed pl-2">
                      <p className="text-xs font-mono text-foreground">{entry.date}</p>
-                     {entry.content.map((paragraph, index) => (
-                        <p key={index}>{paragraph}</p>
-                     ))}
+                     {entry.content.map((paragraph, index) => {
+                      if (paragraph.startsWith('- ')) {
+                        const boldPart = paragraph.substring(2, paragraph.indexOf(':', 2) + 1);
+                        const restOfPart = paragraph.substring(paragraph.indexOf(':', 2) + 1);
+                        return (
+                          <p key={index}>
+                            - <strong>{boldPart}</strong>{restOfPart}
+                          </p>
+                        )
+                      }
+                      return <p key={index}>{paragraph}</p>
+                    })}
                   </AccordionContent>
                 </AccordionItem>
               ))}
