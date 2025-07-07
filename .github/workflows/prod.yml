@@ -27,12 +27,14 @@ jobs:
       - name: 📦 Instalar dependencias
         run: npm install
 
-      - name: 📄 Crear archivo .env desde los secretos
-        run: |
-          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
+      # - name: 📄 Crear archivo .env desde los secretos
+      #   run: |
+      #     echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
 
       - name: ⚙️ Construir la aplicación
         run: npm run build
+        env:
+          VITE_ANIME_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
       - name: 🔍 Verificar si la carpeta dist existe
         run: ls -la dist
