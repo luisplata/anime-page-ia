@@ -34,7 +34,7 @@ jobs:
       - name: ⚙️ Construir la aplicación
         run: npm run build
         env:
-          VITE_ANIME_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_ANIME_API_ENDPOINT: ${{ secrets.VITE_API_BASE_URL }}
 
       - name: 🔍 Verificar si la carpeta dist existe
         run: ls -la dist
