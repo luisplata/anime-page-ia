@@ -91,7 +91,7 @@ define(['./workbox-a959eb95'], (function (workbox) {
   }));
   workbox.registerRoute(({
     url
-  }) => url.origin === process.env.VITE_ANIME_API_ENDPOINT && url.pathname.startsWith("/api/"), new workbox.NetworkFirst({
+  }) => url.origin === "https://backend.animebell.peryloth.com" && url.pathname.startsWith("/api/"), new workbox.NetworkFirst({
     "cacheName": "api-cache",
     "networkTimeoutSeconds": 10,
     plugins: [new workbox.ExpirationPlugin({

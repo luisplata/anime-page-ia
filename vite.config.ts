@@ -74,7 +74,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2,ttf,eot,otf}'],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.origin === process.env.VITE_ANIME_API_ENDPOINT && url.pathname.startsWith('/api/'),
+            urlPattern: ({ url }) => url.origin === 'https://backend.animebell.peryloth.com' && url.pathname.startsWith('/api/'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
