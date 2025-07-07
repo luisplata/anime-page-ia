@@ -19,6 +19,7 @@ jobs:
     # ya que la construcción es la misma independientemente del destino.
     outputs:
       artifact_url: ${{ steps.generate_artifact.outputs.artifact_url }}
+    environment: ${{ github.event.inputs.environment }}
     steps:
       - name: 📥 Checkout del código
         uses: actions/checkout@v3
