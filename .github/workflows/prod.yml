@@ -31,12 +31,6 @@ jobs:
         run: |
           echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
 
-      - name: 🕵️‍♀️ Verificar contenido del .env (TEMPORAL)
-        run: |
-          echo "--- Inicio del contenido del .env ---"
-          cat .env
-          echo "--- Fin del contenido del .env ---"
-
       - name: ⚙️ Construir la aplicación
         run: npm run build
 
