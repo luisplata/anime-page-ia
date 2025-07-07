@@ -16,6 +16,7 @@ function getCookie(name: string): string | null {
 }
 
 // Vite uses import.meta.env for environment variables
+console.log('VITE_ANIME_API_ENDPOINT:', import.meta.env.VITE_ANIME_API_ENDPOINT)
 const API_BASE_URL = import.meta.env.VITE_ANIME_API_ENDPOINT || 'https://backend.animebell.peryloth.com';
 
 // --- Interfaces for API responses ---
