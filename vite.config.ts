@@ -139,5 +139,6 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
+    'import.meta.env.VITE_ANIME_API_ENDPOINT': JSON.stringify(process.env.VITE_ANIME_API_ENDPOINT),
   }
 });
