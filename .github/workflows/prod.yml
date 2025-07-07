@@ -1,14 +1,22 @@
 name: Deploy React App
 
 on:
-  workflow_dispatch: {}
-  push:
-    branches:
-      - deploy  # Cambia esto si usas otra rama
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Selecciona el entorno de despliegue'
+        required: true
+        default: 'anime' # Puedes establecer un valor predeterminado
+        type: choice
+        options: # Define las opciones disponibles para seleccionar
+          - anime_h
+          - anime
 
 jobs:
   export-and-deploy:
     runs-on: ubuntu-latest
+    # Este job de construcción no necesita un entorno específico,
+    # ya que la construcción es la misma independientemente del destino.
     outputs:
       artifact_url: ${{ steps.generate_artifact.outputs.artifact_url }}
     steps:
@@ -46,6 +54,9 @@ jobs:
         with:
           name: react-build
           path: build.zip
+          retention-days: 1 # O el número de días que desees retener el artefacto
+
+      # Ya no necesitamos generar el URL del artefacto si usamos download-artifact
 
       - name: Generate Artifact URL
         id: generate_artifact
@@ -55,8 +66,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: export-and-deploy
-    steps:
+    # Aquí especificamos el entorno usando el input seleccionado al ejecutar el workflow
+    environment: ${{ github.event.inputs.environment }}
 
+    steps:
       - name: 📥 Descargar el artefacto
         uses: actions/download-artifact@v4
         with:
@@ -85,12 +98,14 @@ jobs:
             ARTIFACT_URL="${{ needs.export-and-deploy.outputs.artifact_url }}"
             TEMP_ZIP="$APP_DIR/Export.zip"
 
-            # Limpiar el directorio si existe
+            # Limpiar el directorio de la aplicación si existe
+            echo "Limpiando APP_DIR..."
+            # **¡Precaución!** rm -rf es peligroso. Asegúrate de que APP_DIR esté bien definido.
             if [ -d "$APP_DIR" ]; then
-              echo "Cleaning APP_DIR..."
-              rm -rf "${APP_DIR:?}/*"
+              # Considera una estrategia de limpieza más segura o mover a una copia de seguridad
+              rm -rf "${APP_DIR:?}"/* # El ":?" asegura que la variable no esté vacía antes de ejecutar rm -rf
             else
-              echo "Creating APP_DIR..."
+              echo "Creando APP_DIR..."
               mkdir -p "$APP_DIR"
             fi
 
