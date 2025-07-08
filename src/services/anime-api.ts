@@ -45,7 +45,7 @@ interface ApiEpisodeListItem {
     id: number; // Anime ID
     slug: string;
     title: string; 
-    image: string; // Thumbnail for anime
+    image: string | null; // Thumbnail for anime, can be null
   };
   sources?: ApiEpisodeSource[];
 }
@@ -77,7 +77,7 @@ interface ApiAnimeListItem {
   id: number;
   slug: string;
   title: string;
-  image: string; // Thumbnail
+  image: string | null; // Thumbnail, can be null from API
   description?: string | null;
   created_at: string;
   updated_at: string;
@@ -127,7 +127,7 @@ interface ApiAnimeDetailResponse {
   slug: string;
   title: string;
   description?: string | null;
-  image: string; // Cover URL for the anime
+  image: string | null; // Cover URL for the anime, can be null
   created_at: string;
   updated_at: string;
   episodes: ApiAnimeEpisodeDetail[];
@@ -247,20 +247,18 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
 
 // Helper to map ApiAnimeListItem to AnimeListing
 function mapApiAnimeListItemToAnimeListing(anime: ApiAnimeListItem): AnimeListing | null {
-  if (
-    typeof anime.slug !== 'string' ||
-    typeof anime.title !== 'string' ||
-    typeof anime.image !== 'string' 
-  ) {
-    console.warn('Skipping anime listing due to incomplete/invalid data from API:', anime);
+  if (!anime || typeof anime.slug !== 'string' || typeof anime.title !== 'string') {
+    console.warn('Skipping anime listing due to missing slug or title from API:', anime);
     return null;
   }
+  
   const img = anime.image;
   const placeholder = `https://picsum.photos/seed/${anime.slug || anime.id || 'unknown_anime'}/300/300`;
+  
   return {
     id: anime.slug,
     title: anime.title,
-    thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+    thumbnailUrl: (img && typeof img === 'string' && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
     genres: (Array.isArray(anime.genres) ? anime.genres : []).map(g => g.genre),
   };
 }
@@ -296,7 +294,7 @@ export async function getLatestEpisodes(): Promise<NewEpisode[]> {
           animeId: ep.anime.slug,
           animeTitle: ep.anime.title,
           episodeNumber: episodeNumberNumeric,
-          thumbnailUrl: (img && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
+          thumbnailUrl: (img && typeof img === 'string' && img.trim() !== '' && !img.includes('https://example.com/missing.jpg')) ? img : placeholder,
         };
       })
       .filter((ep): ep is NewEpisode => ep !== null);
@@ -384,7 +382,7 @@ export async function getAnimeDetail(animeSlug: string): Promise<AnimeDetail | n
       description: anime.description?.startsWith('/') 
         ? `Información sobre ${title}.` 
         : (anime.description || "No hay descripción disponible."),
-      coverUrl: (coverImg && coverImg.trim() !== '' && !coverImg.includes('https://example.com/missing.jpg')) ? coverImg : defaultCover,
+      coverUrl: (coverImg && typeof coverImg === 'string' && coverImg.trim() !== '' && !coverImg.includes('https://example.com/missing.jpg')) ? coverImg : defaultCover,
       genres: (Array.isArray(anime.genres) ? anime.genres : []).map(g => g.genre),
       alternativeNames: (Array.isArray(anime.alter_names) ? anime.alter_names : []).map(an => an.name),
       episodes: (Array.isArray(anime.episodes) ? anime.episodes : []).map((ep): Episode => {
